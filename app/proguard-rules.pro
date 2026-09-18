@@ -1,0 +1,3 @@
+-keep class net.schmizz.sshj.** { *; }
+-dontwarn org.bouncycastle.**
+-dontwarn net.i2p.crypto.eddsa.**
