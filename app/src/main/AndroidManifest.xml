@@ -6,8 +6,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="PocketSSH"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PocketSSH"
-        android:usesCleartextTraffic="false">
+        android:theme="@style/Theme.PocketSSH">
         <activity
             android:name=".MainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|uiMode"

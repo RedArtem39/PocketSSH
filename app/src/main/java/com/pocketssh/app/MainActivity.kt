@@ -1,18 +1,26 @@
 package com.pocketssh.app
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.fragment.app.FragmentActivity
+import com.pocketssh.app.ui.LockScreen
 import com.pocketssh.app.ui.PocketSshApp
+import com.pocketssh.app.ui.PocketSshTheme
 
-class MainActivity : ComponentActivity() {
+// BiometricPrompt requires a FragmentActivity host, so this can't stay a plain ComponentActivity.
+class MainActivity : FragmentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,9 +33,18 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Root(viewModel: MainViewModel) {
     var destination by rememberSaveable { mutableStateOf("servers") }
-    PocketSshApp(
-        viewModel = viewModel,
-        destination = destination,
-        navigate = { destination = it },
-    )
+    val isLocked by viewModel.isLocked.collectAsState()
+    PocketSshTheme {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            if (isLocked) {
+                LockScreen(viewModel = viewModel)
+            } else {
+                PocketSshApp(
+                    viewModel = viewModel,
+                    destination = destination,
+                    navigate = { destination = it },
+                )
+            }
+        }
+    }
 }

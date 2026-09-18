@@ -4,13 +4,15 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import org.json.JSONArray
-import org.json.JSONObject
 import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+
+data class KnownHost(val host: String, val port: Int, val fingerprint: String)
 
 class SecureProfileStore(context: Context) {
     private val preferences = context.getSharedPreferences("secure_profiles", Context.MODE_PRIVATE)
@@ -18,50 +20,65 @@ class SecureProfileStore(context: Context) {
 
     fun loadProfiles(): List<ServerProfile> = runCatching {
         val raw = preferences.getString("profiles", null) ?: return emptyList()
-        val array = JSONArray(decrypt(raw))
-        buildList {
-            for (index in 0 until array.length()) add(array.getJSONObject(index).toProfile())
-        }
+        ProfileJson.decode(decrypt(raw))
     }.getOrDefault(emptyList())
 
     fun saveProfiles(profiles: List<ServerProfile>) {
-        val array = JSONArray()
-        profiles.forEach { profile ->
-            array.put(JSONObject().apply {
-                put("id", profile.id)
-                put("name", profile.name)
-                put("host", profile.host)
-                put("port", profile.port)
-                put("username", profile.username)
-                put("authType", profile.authType.name)
-                put("password", if (profile.saveSecret) profile.password else "")
-                put("privateKey", if (profile.saveSecret) profile.privateKey else "")
-                put("keyPassphrase", if (profile.saveSecret) profile.keyPassphrase else "")
-                put("saveSecret", profile.saveSecret)
-            })
-        }
-        preferences.edit().putString("profiles", encrypt(array.toString())).apply()
+        preferences.edit().putString("profiles", encrypt(ProfileJson.encode(profiles))).apply()
     }
 
     fun knownFingerprint(host: String, port: Int): String? =
-        preferences.getString("host_${host.lowercase()}:$port", null)?.let(::decrypt)
+        preferences.getString(hostKey(host, port), null)?.let(::decrypt)
 
     fun rememberFingerprint(host: String, port: Int, fingerprint: String) {
-        preferences.edit().putString("host_${host.lowercase()}:$port", encrypt(fingerprint)).apply()
+        preferences.edit().putString(hostKey(host, port), encrypt(fingerprint)).apply()
     }
 
-    private fun JSONObject.toProfile() = ServerProfile(
-        id = getString("id"),
-        name = getString("name"),
-        host = getString("host"),
-        port = getInt("port"),
-        username = getString("username"),
-        authType = AuthType.valueOf(getString("authType")),
-        password = optString("password"),
-        privateKey = optString("privateKey"),
-        keyPassphrase = optString("keyPassphrase"),
-        saveSecret = optBoolean("saveSecret", true),
-    )
+    fun listKnownHosts(): List<KnownHost> = preferences.all.keys
+        .filter { it.startsWith("host_") }
+        .mapNotNull { key ->
+            val fingerprint = preferences.getString(key, null)
+                ?.let { runCatching { decrypt(it) }.getOrNull() }
+                ?: return@mapNotNull null
+            val hostPort = key.removePrefix("host_")
+            val port = hostPort.substringAfterLast(':').toIntOrNull() ?: return@mapNotNull null
+            val host = hostPort.substringBeforeLast(':')
+            KnownHost(host, port, fingerprint)
+        }
+        .sortedBy { it.host }
+
+    fun forgetFingerprint(host: String, port: Int) {
+        preferences.edit().remove(hostKey(host, port)).apply()
+    }
+
+    fun hasPin(): Boolean = preferences.contains("pin_hash")
+
+    fun setPin(pin: String) {
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        preferences.edit()
+            .putString("pin_salt", encrypt(Base64.encodeToString(salt, Base64.NO_WRAP)))
+            .putString("pin_hash", encrypt(hashPin(pin, salt)))
+            .apply()
+    }
+
+    fun verifyPin(pin: String): Boolean {
+        val saltEncoded = preferences.getString("pin_salt", null)?.let(::decrypt) ?: return false
+        val storedHash = preferences.getString("pin_hash", null)?.let(::decrypt) ?: return false
+        val salt = Base64.decode(saltEncoded, Base64.NO_WRAP)
+        return hashPin(pin, salt) == storedHash
+    }
+
+    fun clearPin() {
+        preferences.edit().remove("pin_salt").remove("pin_hash").apply()
+    }
+
+    private fun hashPin(pin: String, salt: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        digest.update(salt)
+        return Base64.encodeToString(digest.digest(pin.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
+    }
+
+    private fun hostKey(host: String, port: Int) = "host_${host.lowercase()}:$port"
 
     private fun secretKey(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
