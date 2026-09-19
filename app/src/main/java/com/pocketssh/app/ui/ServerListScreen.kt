@@ -1,5 +1,6 @@
 package com.pocketssh.app.ui
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,10 +52,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pocketssh.app.MainViewModel
+import com.pocketssh.app.R
 import com.pocketssh.app.data.ServerProfile
 import com.pocketssh.app.ssh.ConnectionState
 
@@ -68,16 +71,16 @@ fun ServerListScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     pendingConnect?.let { target ->
         AlertDialog(
             onDismissRequest = { pendingConnect = null },
-            title = { Text("Replace active session?") },
-            text = { Text("Disconnect the current session and connect to ${target.name}?") },
+            title = { Text(stringResource(R.string.servers_replace_session_title)) },
+            text = { Text(stringResource(R.string.servers_replace_session_text, target.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingConnect = null
                     viewModel.session.connect(target)
                     navigate("terminal")
-                }) { Text("Connect") }
+                }) { Text(stringResource(R.string.action_connect)) }
             },
-            dismissButton = { TextButton(onClick = { pendingConnect = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pendingConnect = null }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 
@@ -86,66 +89,69 @@ fun ServerListScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             TopAppBar(
                 title = {
                     Column {
-                        Text("PocketSSH", fontWeight = FontWeight.Bold)
-                        Text("Your servers", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.servers_subtitle), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navigate("settings") }) { Icon(Icons.Default.Settings, "Settings") }
+                    IconButton(onClick = { navigate("settings") }) { Icon(Icons.Default.Settings, stringResource(R.string.cd_settings)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { navigate("new") }) { Icon(Icons.Default.Add, "Add server") }
+            FloatingActionButton(onClick = { navigate("new") }) { Icon(Icons.Default.Add, stringResource(R.string.cd_add_server)) }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (profiles.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Terminal, null, Modifier.size(54.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(16.dp))
-                    Text("No servers yet", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Add a host to start an SSH session", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Crossfade(targetState = profiles.isEmpty(), label = "server-list") { empty ->
+            if (empty) {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Terminal, null, Modifier.size(54.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(16.dp))
+                        Text(stringResource(R.string.servers_empty_title), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.servers_empty_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-            }
-        } else {
-            LazyColumn(
-                Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (state is ConnectionState.Connected) {
-                    item {
-                        Card(
-                            Modifier.fillMaxWidth().clickable { navigate("terminal") },
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = .14f)),
-                        ) {
-                            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Circle, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.primary)
-                                Spacer(Modifier.width(10.dp))
-                                Text("Session active — tap to return", Modifier.weight(1f))
-                                Icon(Icons.Default.ChevronRight, null)
+            } else {
+                LazyColumn(
+                    Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (state is ConnectionState.Connected) {
+                        item(key = "active-session") {
+                            Card(
+                                Modifier.fillMaxWidth().animateItem().clickable { navigate("terminal") },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = .14f)),
+                            ) {
+                                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Circle, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(stringResource(R.string.servers_session_active), Modifier.weight(1f))
+                                    Icon(Icons.Default.ChevronRight, null)
+                                }
                             }
                         }
                     }
-                }
-                items(profiles, key = { it.id }) { profile ->
-                    ServerCard(
-                        profile = profile,
-                        onConnect = {
-                            if (state is ConnectionState.Connected || state is ConnectionState.Connecting) {
-                                pendingConnect = profile
-                            } else {
-                                viewModel.session.connect(profile)
-                                navigate("terminal")
-                            }
-                        },
-                        onEdit = { navigate("edit:${profile.id}") },
-                        onDelete = { viewModel.delete(profile) },
-                        onBrowseFiles = { navigate("files:${profile.id}") },
-                    )
+                    items(profiles, key = { it.id }) { profile ->
+                        ServerCard(
+                            profile = profile,
+                            modifier = Modifier.animateItem(),
+                            onConnect = {
+                                if (state is ConnectionState.Connected || state is ConnectionState.Connecting) {
+                                    pendingConnect = profile
+                                } else {
+                                    viewModel.session.connect(profile)
+                                    navigate("terminal")
+                                }
+                            },
+                            onEdit = { navigate("edit:${profile.id}") },
+                            onDelete = { viewModel.delete(profile) },
+                            onBrowseFiles = { navigate("files:${profile.id}") },
+                        )
+                    }
                 }
             }
         }
@@ -159,9 +165,10 @@ private fun ServerCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onBrowseFiles: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
-    Card(Modifier.fillMaxWidth().clickable(onClick = onConnect)) {
+    Card(modifier.fillMaxWidth().clickable(onClick = onConnect)) {
         Row(Modifier.padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = .12f)) {
                 Icon(Icons.Default.Dns, null, Modifier.padding(12.dp), tint = MaterialTheme.colorScheme.primary)
@@ -172,11 +179,11 @@ private fun ServerCard(
                 Text("${profile.username}@${profile.host}:${profile.port}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
             Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "Options") }
+                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.cd_options)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Browse files") }, leadingIcon = { Icon(Icons.Default.Folder, null) }, onClick = { menu = false; onBrowseFiles() })
-                    DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { menu = false; onEdit() })
-                    DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { Icon(Icons.Default.Delete, null) }, onClick = { menu = false; onDelete() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.menu_browse_files)) }, leadingIcon = { Icon(Icons.Default.Folder, null) }, onClick = { menu = false; onBrowseFiles() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.action_edit)) }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { menu = false; onEdit() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.action_delete)) }, leadingIcon = { Icon(Icons.Default.Delete, null) }, onClick = { menu = false; onDelete() })
                 }
             }
         }

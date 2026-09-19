@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PocketSSH</string>
+
+    <!-- Shared actions -->
+    <string name="action_cancel">Скасувати</string>
+    <string name="action_delete">Видалити</string>
+    <string name="action_edit">Змінити</string>
+    <string name="action_retry">Повторити</string>
+    <string name="action_continue">Продовжити</string>
+    <string name="action_create">Створити</string>
+    <string name="cd_back">Назад</string>
+    <string name="cd_options">Опції</string>
+
+    <!-- Server list -->
+    <string name="servers_subtitle">Ваші сервери</string>
+    <string name="servers_replace_session_title">Замінити активну сесію?</string>
+    <string name="servers_replace_session_text">Від\'єднатися від поточної сесії та підключитися до %1$s?</string>
+    <string name="action_connect">Підключитися</string>
+    <string name="cd_settings">Налаштування</string>
+    <string name="cd_add_server">Додати сервер</string>
+    <string name="servers_empty_title">Поки немає серверів</string>
+    <string name="servers_empty_subtitle">Додайте хост, щоб почати SSH-сесію</string>
+    <string name="servers_session_active">Сесія активна — натисніть, щоб повернутися</string>
+    <string name="menu_browse_files">Файли</string>
+
+    <!-- Profile editor -->
+    <string name="profile_new_title">Новий сервер</string>
+    <string name="profile_edit_title">Змінити сервер</string>
+    <string name="error_key_read_failed">Не вдалося прочитати ключ</string>
+    <string name="error_host_required">Вкажіть хост</string>
+    <string name="error_username_required">Вкажіть ім\'я користувача</string>
+    <string name="error_port_range">Порт має бути від 1 до 65535</string>
+    <string name="error_choose_key">Виберіть приватний ключ</string>
+    <string name="action_save_server">Зберегти сервер</string>
+    <string name="label_name">Назва</string>
+    <string name="label_host">Хост або IP</string>
+    <string name="label_username">Ім\'я користувача</string>
+    <string name="label_port">Порт</string>
+    <string name="label_authentication">Автентифікація</string>
+    <string name="auth_password">Пароль</string>
+    <string name="auth_private_key">Приватний ключ</string>
+    <string name="action_choose_private_key">Вибрати приватний ключ</string>
+    <string name="action_private_key_loaded">Приватний ключ завантажено</string>
+    <string name="label_key_passphrase">Пароль ключа (необов\'язково)</string>
+    <string name="label_remember_credential">Запам\'ятати облікові дані</string>
+    <string name="desc_keystore_encrypted">Зашифровано через Android Keystore</string>
+
+    <!-- Terminal -->
+    <string name="terminal_connecting">Підключення…</string>
+    <string name="terminal_title_default">Термінал</string>
+    <string name="cd_servers">Сервери</string>
+    <string name="terminal_state_disconnected">Відключено</string>
+    <string name="terminal_state_negotiating">Узгодження SSH</string>
+    <string name="terminal_state_connected">Підключено</string>
+    <string name="cd_switch_to_line_input">Перемкнути на порядковий ввід</string>
+    <string name="cd_switch_to_raw_input">Перемкнути на прямий ввід (для vim/htop)</string>
+    <string name="cd_copy_output">Копіювати вивід</string>
+    <string name="action_disconnect">Від\'єднатися</string>
+    <string name="key_esc">Esc</string>
+    <string name="key_tab">Tab</string>
+    <string name="key_ctrl_c">Ctrl+C</string>
+    <string name="key_ctrl_d">Ctrl+D</string>
+    <string name="terminal_command_placeholder">Введіть команду</string>
+    <string name="cd_send">Надіслати</string>
+    <string name="terminal_raw_mode_hint">Прямий режим — символи надсилаються миттєво. Натисніть, щоб відкрити клавіатуру.</string>
+
+    <!-- File browser -->
+    <string name="toast_uploaded">Завантажено: %1$s</string>
+    <string name="toast_upload_failed">Помилка завантаження: %1$s</string>
+    <string name="toast_downloaded">Отримано: %1$s</string>
+    <string name="toast_download_failed">Помилка отримання: %1$s</string>
+    <string name="toast_mkdir_failed">Не вдалося створити папку: %1$s</string>
+    <string name="files_title_default">Файли</string>
+    <string name="cd_new_folder">Нова папка</string>
+    <string name="cd_refresh">Оновити</string>
+    <string name="cd_upload">Завантажити</string>
+    <string name="files_error_title">Не вдалося відкрити цей сервер</string>
+    <string name="toast_delete_failed">Помилка видалення: %1$s</string>
+    <string name="files_delete_title">Видалити %1$s?</string>
+    <string name="files_delete_folder_text">Порожню папку буде видалено.</string>
+    <string name="files_delete_file_text">Цю дію не можна скасувати.</string>
+    <string name="action_download">Завантажити</string>
+    <string name="files_new_folder_title">Нова папка</string>
+
+    <!-- Settings -->
+    <string name="toast_backup_exported">Резервну копію експортовано</string>
+    <string name="toast_export_failed">Помилка експорту: %1$s</string>
+    <string name="dialog_export_passphrase_title">Задайте пароль для експорту</string>
+    <string name="dialog_import_passphrase_title">Введіть пароль резервної копії</string>
+    <string name="toast_imported">Імпортовано серверів: %1$d</string>
+    <string name="toast_import_failed">Помилка імпорту — невірний пароль або пошкоджений файл</string>
+    <string name="settings_title">Налаштування</string>
+    <string name="settings_app_lock">Блокування застосунку</string>
+    <string name="settings_pin_set_desc">PIN-код встановлено — PocketSSH блокується при згортанні.</string>
+    <string name="settings_pin_not_set_desc">PIN-код не встановлено — PocketSSH не блокується.</string>
+    <string name="label_new_pin">Новий PIN-код</string>
+    <string name="action_change_pin">Змінити PIN-код</string>
+    <string name="action_set_pin">Встановити PIN-код</string>
+    <string name="toast_pin_saved">PIN-код збережено</string>
+    <string name="action_remove_pin">Видалити PIN-код</string>
+    <string name="toast_pin_removed">PIN-код видалено</string>
+    <string name="settings_known_hosts">Відомі ключі хостів</string>
+    <string name="settings_no_hosts">Поки немає довірених серверів.</string>
+    <string name="cd_forget_host">Забути</string>
+    <string name="settings_backup">Резервна копія</string>
+    <string name="settings_backup_desc">Сервери шифруються паролем, який ви задаєте самі — збережіть його, відновити буде неможливо.</string>
+    <string name="action_export_backup">Експортувати копію</string>
+    <string name="action_import_backup">Імпортувати копію</string>
+    <string name="label_passphrase">Пароль</string>
+    <string name="settings_language">Мова</string>
+    <string name="settings_language_system_default">Як у системі</string>
+
+    <!-- Lock screen -->
+    <string name="biometric_prompt_title">Розблокувати PocketSSH</string>
+    <string name="biometric_negative_button">Ввести PIN-код</string>
+    <string name="lock_title">PocketSSH заблоковано</string>
+    <string name="lock_enter_pin_hint">Введіть PIN-код</string>
+    <string name="lock_wrong_pin">Невірний PIN-код</string>
+    <string name="action_use_biometrics">Використати біометрію</string>
+
+    <!-- Host key dialog -->
+    <string name="hostkey_title">Невідомий ключ сервера</string>
+    <string name="hostkey_verify_text">Перевірте цей відбиток перед підключенням до %1$s:%2$d.</string>
+    <string name="action_trust_and_save">Довіряти та зберегти</string>
+</resources>

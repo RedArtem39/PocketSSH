@@ -2,6 +2,8 @@ package com.pocketssh.app.ui
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,6 +61,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
@@ -74,6 +77,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pocketssh.app.MainViewModel
+import com.pocketssh.app.R
 import com.pocketssh.app.ssh.ConnectionState
 import com.pocketssh.app.ssh.SshSessionManager
 import com.pocketssh.app.terminal.ImageFormat
@@ -83,6 +87,7 @@ import com.pocketssh.app.terminal.TerminalImageData
 import com.pocketssh.app.terminal.TerminalRow
 import com.pocketssh.app.terminal.TerminalSnapshot
 import java.nio.ByteBuffer
+import kotlinx.coroutines.delay
 
 private const val SENTINEL = "​"
 private val TerminalBg = Color(0xFF070A0D)
@@ -104,6 +109,18 @@ fun TerminalScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     val charSize = remember { textMeasurer.measure(AnnotatedString("M"), monoStyle).size }
     LaunchedEffect(charSize) { viewModel.session.setCellPixelSize(charSize.width.toFloat(), charSize.height.toFloat()) }
 
+    // A real terminal cursor blinks — it's a small, authentic touch that shows the session is
+    // alive rather than a frozen screenshot. The screen itself is only ~40 rows, so redoing this
+    // list twice a second is unnoticeable; it's the scrollback concatenation that used to be the
+    // expensive part, and that isn't touched here.
+    var cursorOn by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(530)
+            cursorOn = !cursorOn
+        }
+    }
+
     // Scrollback is append-only and can hold up to 2000 lines, while the live screen is a
     // couple dozen rows that change on every keystroke of remote output. Keeping them as two
     // separate LazyColumn item ranges (instead of concatenating into one list every frame) means
@@ -112,8 +129,8 @@ fun TerminalScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     val scrollbackItems = remember(screen.scrollback) {
         buildRenderItems(screen.scrollback, cursorAbsoluteRow = -1, cursorVisible = false, cursorCol = -1, images = screen.images)
     }
-    val screenItems = remember(screen) {
-        buildRenderItems(screen.screen, screen.cursorRow, screen.cursorVisible, screen.cursorCol, screen.images)
+    val screenItems = remember(screen, cursorOn) {
+        buildRenderItems(screen.screen, screen.cursorRow, screen.cursorVisible && cursorOn, screen.cursorCol, screen.images)
     }
     val totalItemCount = scrollbackItems.size + screenItems.size
     LaunchedEffect(totalItemCount) { if (totalItemCount > 0) listState.scrollToItem(totalItemCount - 1) }
@@ -171,28 +188,30 @@ private fun TerminalTopBar(
     onDisconnect: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Servers") }
+        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cd_servers)) }
         Column(Modifier.weight(1f)) {
             Text(
                 when (state) {
                     is ConnectionState.Connected -> state.title
-                    ConnectionState.Connecting -> "Connecting…"
-                    else -> "Terminal"
+                    ConnectionState.Connecting -> stringResource(R.string.terminal_connecting)
+                    else -> stringResource(R.string.terminal_title_default)
                 },
                 fontWeight = FontWeight.SemiBold,
             )
             Text(stateLabel(state), color = stateColor(state), fontSize = 11.sp)
         }
         IconButton(onClick = onToggleRaw) {
-            if (rawMode) {
-                Icon(Icons.Default.Terminal, "Switch to line input")
-            } else {
-                Icon(Icons.Default.Keyboard, "Switch to raw input (for vim/htop)")
+            Crossfade(targetState = rawMode, animationSpec = tween(150), label = "input-mode-icon") { raw ->
+                if (raw) {
+                    Icon(Icons.Default.Terminal, stringResource(R.string.cd_switch_to_line_input))
+                } else {
+                    Icon(Icons.Default.Keyboard, stringResource(R.string.cd_switch_to_raw_input))
+                }
             }
         }
-        IconButton(onClick = onCopy) { Icon(Icons.Default.ContentCopy, "Copy output") }
+        IconButton(onClick = onCopy) { Icon(Icons.Default.ContentCopy, stringResource(R.string.cd_copy_output)) }
         if (state !is ConnectionState.Disconnected) {
-            TextButton(onClick = onDisconnect) { Text("Disconnect", color = MaterialTheme.colorScheme.error) }
+            TextButton(onClick = onDisconnect) { Text(stringResource(R.string.action_disconnect), color = MaterialTheme.colorScheme.error) }
         }
     }
 }
@@ -203,14 +222,14 @@ private fun SpecialKeysRow(session: SshSessionManager) {
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 5.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        TerminalKey("Esc") { session.send("\u001B") }
-        TerminalKey("Tab") { session.send("\t") }
+        TerminalKey(stringResource(R.string.key_esc)) { session.send("\u001B") }
+        TerminalKey(stringResource(R.string.key_tab)) { session.send("\t") }
         TerminalKey("↑") { session.send("\u001B[A") }
         TerminalKey("↓") { session.send("\u001B[B") }
         TerminalKey("←") { session.send("\u001B[D") }
         TerminalKey("→") { session.send("\u001B[C") }
-        TerminalKey("Ctrl+C") { session.send("\u0003") }
-        TerminalKey("Ctrl+D") { session.send("\u0004") }
+        TerminalKey(stringResource(R.string.key_ctrl_c)) { session.send("\u0003") }
+        TerminalKey(stringResource(R.string.key_ctrl_d)) { session.send("\u0004") }
     }
 }
 
@@ -228,7 +247,7 @@ private fun LineInputBar(command: String, onCommandChange: (String) -> Unit, ena
             value = command,
             onValueChange = onCommandChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text("Type a command") },
+            placeholder = { Text(stringResource(R.string.terminal_command_placeholder)) },
             singleLine = true,
             enabled = enabled,
         )
@@ -237,7 +256,7 @@ private fun LineInputBar(command: String, onCommandChange: (String) -> Unit, ena
             onClick = onSend,
             enabled = enabled && command.isNotEmpty(),
             modifier = Modifier.size(52.dp),
-        ) { Icon(Icons.Default.Send, "Send") }
+        ) { Icon(Icons.Default.Send, stringResource(R.string.cd_send)) }
     }
 }
 
@@ -253,7 +272,7 @@ private fun RawInputBar(enabled: Boolean, onKey: (String) -> Unit) {
         Icon(Icons.Default.Keyboard, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(8.dp))
         Text(
-            "Raw mode — keystrokes are sent immediately. Tap to focus the keyboard.",
+            stringResource(R.string.terminal_raw_mode_hint),
             Modifier.weight(1f),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 12.sp,
@@ -277,10 +296,11 @@ private fun RawInputBar(enabled: Boolean, onKey: (String) -> Unit) {
     }
 }
 
+@Composable
 private fun stateLabel(state: ConnectionState) = when (state) {
-    ConnectionState.Disconnected -> "Disconnected"
-    ConnectionState.Connecting -> "Negotiating SSH"
-    is ConnectionState.Connected -> "Connected"
+    ConnectionState.Disconnected -> stringResource(R.string.terminal_state_disconnected)
+    ConnectionState.Connecting -> stringResource(R.string.terminal_state_negotiating)
+    is ConnectionState.Connected -> stringResource(R.string.terminal_state_connected)
     is ConnectionState.Failed -> state.message
 }
 

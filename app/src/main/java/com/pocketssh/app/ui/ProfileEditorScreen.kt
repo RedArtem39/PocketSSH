@@ -3,6 +3,16 @@ package com.pocketssh.app.ui
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,11 +50,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pocketssh.app.MainViewModel
+import com.pocketssh.app.R
 import com.pocketssh.app.data.AuthType
 import com.pocketssh.app.data.ServerProfile
 import java.util.UUID
@@ -63,15 +75,24 @@ fun ProfileEditorScreen(existing: ServerProfile?, viewModel: MainViewModel, navi
     var passphrase by remember(existing?.id) { mutableStateOf(existing?.keyPassphrase.orEmpty()) }
     var saveSecret by remember(existing?.id) { mutableStateOf(existing?.saveSecret ?: true) }
     var error by remember { mutableStateOf<String?>(null) }
+
+    // stringResource() only works inside composition, so callbacks that run later (click, file
+    // picker result) capture these as plain values instead of calling it themselves.
+    val errorKeyReadFailed = stringResource(R.string.error_key_read_failed)
+    val errorHostRequired = stringResource(R.string.error_host_required)
+    val errorUsernameRequired = stringResource(R.string.error_username_required)
+    val errorPortRange = stringResource(R.string.error_port_range)
+    val errorChooseKey = stringResource(R.string.error_choose_key)
+
     val keyPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) privateKey = context.readText(uri) ?: run { error = "Could not read this key"; "" }
+        if (uri != null) privateKey = context.readText(uri) ?: run { error = errorKeyReadFailed; "" }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (existing == null) "New server" else "Edit server") },
-                navigationIcon = { IconButton(onClick = { navigate("servers") }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                title = { Text(if (existing == null) stringResource(R.string.profile_new_title) else stringResource(R.string.profile_edit_title)) },
+                navigationIcon = { IconButton(onClick = { navigate("servers") }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cd_back)) } },
             )
         },
         bottomBar = {
@@ -79,10 +100,10 @@ fun ProfileEditorScreen(existing: ServerProfile?, viewModel: MainViewModel, navi
                 onClick = {
                     val parsedPort = port.toIntOrNull()
                     when {
-                        host.isBlank() -> error = "Host is required"
-                        username.isBlank() -> error = "Username is required"
-                        parsedPort == null || parsedPort !in 1..65535 -> error = "Port must be between 1 and 65535"
-                        authType == AuthType.PRIVATE_KEY && privateKey.isBlank() -> error = "Choose a private key"
+                        host.isBlank() -> error = errorHostRequired
+                        username.isBlank() -> error = errorUsernameRequired
+                        parsedPort == null || parsedPort !in 1..65535 -> error = errorPortRange
+                        authType == AuthType.PRIVATE_KEY && privateKey.isBlank() -> error = errorChooseKey
                         else -> {
                             val profile = ServerProfile(
                                 id = existing?.id ?: UUID.randomUUID().toString(),
@@ -96,39 +117,58 @@ fun ProfileEditorScreen(existing: ServerProfile?, viewModel: MainViewModel, navi
                     }
                 },
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).height(52.dp),
-            ) { Text("Save server") }
+            ) { Text(stringResource(R.string.action_save_server)) }
         },
     ) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name") }, singleLine = true)
-            OutlinedTextField(host, { host = it }, Modifier.fillMaxWidth(), label = { Text("Host or IP") }, singleLine = true)
+            AnimatedVisibility(
+                visible = error != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
+            }
+            OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_name)) }, singleLine = true)
+            OutlinedTextField(host, { host = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_host)) }, singleLine = true)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(username, { username = it }, Modifier.weight(1f), label = { Text("Username") }, singleLine = true)
-                OutlinedTextField(port, { port = it.filter(Char::isDigit).take(5) }, Modifier.width(104.dp), label = { Text("Port") }, singleLine = true)
+                OutlinedTextField(username, { username = it }, Modifier.weight(1f), label = { Text(stringResource(R.string.label_username)) }, singleLine = true)
+                OutlinedTextField(port, { port = it.filter(Char::isDigit).take(5) }, Modifier.width(104.dp), label = { Text(stringResource(R.string.label_port)) }, singleLine = true)
             }
-            Text("Authentication", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.label_authentication), fontWeight = FontWeight.SemiBold)
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                SegmentedButton(authType == AuthType.PASSWORD, { authType = AuthType.PASSWORD }, SegmentedButtonDefaults.itemShape(0, 2)) { Text("Password") }
-                SegmentedButton(authType == AuthType.PRIVATE_KEY, { authType = AuthType.PRIVATE_KEY }, SegmentedButtonDefaults.itemShape(1, 2)) { Text("Private key") }
+                SegmentedButton(authType == AuthType.PASSWORD, { authType = AuthType.PASSWORD }, SegmentedButtonDefaults.itemShape(0, 2)) { Text(stringResource(R.string.auth_password)) }
+                SegmentedButton(authType == AuthType.PRIVATE_KEY, { authType = AuthType.PRIVATE_KEY }, SegmentedButtonDefaults.itemShape(1, 2)) { Text(stringResource(R.string.auth_private_key)) }
             }
-            if (authType == AuthType.PASSWORD) {
-                OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("Password") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
-            } else {
-                OutlinedButton(onClick = { keyPicker.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth().height(52.dp)) {
-                    Icon(Icons.Default.Key, null); Spacer(Modifier.width(8.dp)); Text(if (privateKey.isBlank()) "Choose private key" else "Private key loaded")
+            AnimatedContent(
+                targetState = authType,
+                transitionSpec = {
+                    (fadeIn(tween(180)) + slideInVertically(tween(180)) { it / 6 })
+                        .togetherWith(fadeOut(tween(120)) + slideOutVertically(tween(120)) { -it / 6 })
+                },
+                label = "auth-fields",
+            ) { type ->
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (type == AuthType.PASSWORD) {
+                        OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.auth_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+                    } else {
+                        OutlinedButton(onClick = { keyPicker.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth().height(52.dp)) {
+                            Icon(Icons.Default.Key, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (privateKey.isBlank()) stringResource(R.string.action_choose_private_key) else stringResource(R.string.action_private_key_loaded))
+                        }
+                        OutlinedTextField(passphrase, { passphrase = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_key_passphrase)) }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+                    }
                 }
-                OutlinedTextField(passphrase, { passphrase = it }, Modifier.fillMaxWidth(), label = { Text("Key passphrase (optional)") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(saveSecret, { saveSecret = it })
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("Remember credential")
-                    Text("Encrypted with Android Keystore", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text(stringResource(R.string.label_remember_credential))
+                    Text(stringResource(R.string.desc_keystore_encrypted), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
         }

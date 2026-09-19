@@ -12,8 +12,8 @@ android {
         applicationId = "com.pocketssh.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     buildTypes {
@@ -21,6 +21,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Signed with the debug keystore so a release build can actually be installed for
+            // local device testing (R8 output, no debug-mode Compose overhead). Swap for a real
+            // release keystore before ever shipping this anywhere.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -48,6 +52,7 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.hierynomus:sshj:0.40.0")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.80")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")

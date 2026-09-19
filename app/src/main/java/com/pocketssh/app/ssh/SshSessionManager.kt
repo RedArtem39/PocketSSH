@@ -1,6 +1,7 @@
 package com.pocketssh.app.ssh
 
 import android.content.Context
+import android.util.Log
 import com.pocketssh.app.data.ServerProfile
 import com.pocketssh.app.terminal.TerminalEmulator
 import com.pocketssh.app.terminal.TerminalSnapshot
@@ -77,6 +78,7 @@ class SshSessionManager(
                     feed("\r\n\u001B[33mConnection closed.\u001B[0m\r\n")
                 }
             } catch (error: Exception) {
+                Log.e("PocketSSH", "connect() failed", error)
                 if (_state.value !is ConnectionState.Disconnected) {
                     val message = error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
                     _state.value = ConnectionState.Failed(message)

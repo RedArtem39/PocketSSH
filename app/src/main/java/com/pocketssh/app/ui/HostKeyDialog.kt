@@ -10,9 +10,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pocketssh.app.R
 import com.pocketssh.app.ssh.HostKeyRequest
 
 @Composable
@@ -20,15 +22,15 @@ fun HostKeyDialog(request: HostKeyRequest, onAnswer: (accepted: Boolean, remembe
     AlertDialog(
         onDismissRequest = {},
         icon = { Icon(Icons.Default.Security, null) },
-        title = { Text("Unknown server key") },
+        title = { Text(stringResource(R.string.hostkey_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Verify this fingerprint before connecting to ${request.host}:${request.port}.")
+                Text(stringResource(R.string.hostkey_verify_text, request.host, request.port))
                 Text(request.algorithm, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(request.fingerprint, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
             }
         },
-        confirmButton = { TextButton(onClick = { onAnswer(true, true) }) { Text("Trust and save") } },
-        dismissButton = { TextButton(onClick = { onAnswer(false, false) }) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onAnswer(true, true) }) { Text(stringResource(R.string.action_trust_and_save)) } },
+        dismissButton = { TextButton(onClick = { onAnswer(false, false) }) { Text(stringResource(R.string.action_cancel)) } },
     )
 }

@@ -1,9 +1,12 @@
 package com.pocketssh.app
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,6 +26,10 @@ import com.pocketssh.app.ui.PocketSshTheme
 class MainActivity : FragmentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocale.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -36,14 +43,16 @@ private fun Root(viewModel: MainViewModel) {
     val isLocked by viewModel.isLocked.collectAsState()
     PocketSshTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            if (isLocked) {
-                LockScreen(viewModel = viewModel)
-            } else {
-                PocketSshApp(
-                    viewModel = viewModel,
-                    destination = destination,
-                    navigate = { destination = it },
-                )
+            Crossfade(targetState = isLocked, animationSpec = tween(280), label = "lock") { locked ->
+                if (locked) {
+                    LockScreen(viewModel = viewModel)
+                } else {
+                    PocketSshApp(
+                        viewModel = viewModel,
+                        destination = destination,
+                        navigate = { destination = it },
+                    )
+                }
             }
         }
     }

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PocketSSH</string>
+
+    <!-- Shared actions -->
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_delete">Löschen</string>
+    <string name="action_edit">Bearbeiten</string>
+    <string name="action_retry">Erneut versuchen</string>
+    <string name="action_continue">Weiter</string>
+    <string name="action_create">Erstellen</string>
+    <string name="cd_back">Zurück</string>
+    <string name="cd_options">Optionen</string>
+
+    <!-- Server list -->
+    <string name="servers_subtitle">Deine Server</string>
+    <string name="servers_replace_session_title">Aktive Sitzung ersetzen?</string>
+    <string name="servers_replace_session_text">Aktuelle Sitzung trennen und mit %1$s verbinden?</string>
+    <string name="action_connect">Verbinden</string>
+    <string name="cd_settings">Einstellungen</string>
+    <string name="cd_add_server">Server hinzufügen</string>
+    <string name="servers_empty_title">Noch keine Server</string>
+    <string name="servers_empty_subtitle">Füge einen Host hinzu, um eine SSH-Sitzung zu starten</string>
+    <string name="servers_session_active">Sitzung aktiv — tippen, um zurückzukehren</string>
+    <string name="menu_browse_files">Dateien durchsuchen</string>
+
+    <!-- Profile editor -->
+    <string name="profile_new_title">Neuer Server</string>
+    <string name="profile_edit_title">Server bearbeiten</string>
+    <string name="error_key_read_failed">Schlüssel konnte nicht gelesen werden</string>
+    <string name="error_host_required">Host ist erforderlich</string>
+    <string name="error_username_required">Benutzername ist erforderlich</string>
+    <string name="error_port_range">Port muss zwischen 1 und 65535 liegen</string>
+    <string name="error_choose_key">Wähle einen privaten Schlüssel</string>
+    <string name="action_save_server">Server speichern</string>
+    <string name="label_name">Name</string>
+    <string name="label_host">Host oder IP</string>
+    <string name="label_username">Benutzername</string>
+    <string name="label_port">Port</string>
+    <string name="label_authentication">Authentifizierung</string>
+    <string name="auth_password">Passwort</string>
+    <string name="auth_private_key">Privater Schlüssel</string>
+    <string name="action_choose_private_key">Privaten Schlüssel wählen</string>
+    <string name="action_private_key_loaded">Privater Schlüssel geladen</string>
+    <string name="label_key_passphrase">Schlüsselpasswort (optional)</string>
+    <string name="label_remember_credential">Anmeldedaten merken</string>
+    <string name="desc_keystore_encrypted">Verschlüsselt mit Android Keystore</string>
+
+    <!-- Terminal -->
+    <string name="terminal_connecting">Verbindung wird hergestellt…</string>
+    <string name="terminal_title_default">Terminal</string>
+    <string name="cd_servers">Server</string>
+    <string name="terminal_state_disconnected">Getrennt</string>
+    <string name="terminal_state_negotiating">SSH-Aushandlung</string>
+    <string name="terminal_state_connected">Verbunden</string>
+    <string name="cd_switch_to_line_input">Zur Zeileneingabe wechseln</string>
+    <string name="cd_switch_to_raw_input">Zur Direkteingabe wechseln (für vim/htop)</string>
+    <string name="cd_copy_output">Ausgabe kopieren</string>
+    <string name="action_disconnect">Trennen</string>
+    <string name="key_esc">Esc</string>
+    <string name="key_tab">Tab</string>
+    <string name="key_ctrl_c">Strg+C</string>
+    <string name="key_ctrl_d">Strg+D</string>
+    <string name="terminal_command_placeholder">Befehl eingeben</string>
+    <string name="cd_send">Senden</string>
+    <string name="terminal_raw_mode_hint">Direktmodus — Tastenanschläge werden sofort gesendet. Tippen, um die Tastatur zu öffnen.</string>
+
+    <!-- File browser -->
+    <string name="toast_uploaded">Hochgeladen: %1$s</string>
+    <string name="toast_upload_failed">Upload fehlgeschlagen: %1$s</string>
+    <string name="toast_downloaded">Heruntergeladen: %1$s</string>
+    <string name="toast_download_failed">Download fehlgeschlagen: %1$s</string>
+    <string name="toast_mkdir_failed">Ordner konnte nicht erstellt werden: %1$s</string>
+    <string name="files_title_default">Dateien</string>
+    <string name="cd_new_folder">Neuer Ordner</string>
+    <string name="cd_refresh">Aktualisieren</string>
+    <string name="cd_upload">Hochladen</string>
+    <string name="files_error_title">Dieser Server konnte nicht geöffnet werden</string>
+    <string name="toast_delete_failed">Löschen fehlgeschlagen: %1$s</string>
+    <string name="files_delete_title">%1$s löschen?</string>
+    <string name="files_delete_folder_text">Der leere Ordner wird gelöscht.</string>
+    <string name="files_delete_file_text">Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="action_download">Herunterladen</string>
+    <string name="files_new_folder_title">Neuer Ordner</string>
+
+    <!-- Settings -->
+    <string name="toast_backup_exported">Backup exportiert</string>
+    <string name="toast_export_failed">Export fehlgeschlagen: %1$s</string>
+    <string name="dialog_export_passphrase_title">Exportpasswort festlegen</string>
+    <string name="dialog_import_passphrase_title">Backup-Passwort eingeben</string>
+    <string name="toast_imported">%1$d Server importiert</string>
+    <string name="toast_import_failed">Import fehlgeschlagen — falsches Passwort oder beschädigte Datei</string>
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_app_lock">App-Sperre</string>
+    <string name="settings_pin_set_desc">Eine PIN ist festgelegt — PocketSSH sperrt sich im Hintergrund.</string>
+    <string name="settings_pin_not_set_desc">Keine PIN festgelegt — PocketSSH sperrt sich nicht.</string>
+    <string name="label_new_pin">Neue PIN</string>
+    <string name="action_change_pin">PIN ändern</string>
+    <string name="action_set_pin">PIN festlegen</string>
+    <string name="toast_pin_saved">PIN gespeichert</string>
+    <string name="action_remove_pin">PIN entfernen</string>
+    <string name="toast_pin_removed">PIN entfernt</string>
+    <string name="settings_known_hosts">Bekannte Host-Schlüssel</string>
+    <string name="settings_no_hosts">Noch keine vertrauten Server.</string>
+    <string name="cd_forget_host">Vergessen</string>
+    <string name="settings_backup">Backup</string>
+    <string name="settings_backup_desc">Server werden mit einem selbst gewählten Passwort verschlüsselt — bewahre es gut auf, es kann nicht wiederhergestellt werden.</string>
+    <string name="action_export_backup">Backup exportieren</string>
+    <string name="action_import_backup">Backup importieren</string>
+    <string name="label_passphrase">Passwort</string>
+    <string name="settings_language">Sprache</string>
+    <string name="settings_language_system_default">Systemstandard</string>
+
+    <!-- Lock screen -->
+    <string name="biometric_prompt_title">PocketSSH entsperren</string>
+    <string name="biometric_negative_button">PIN verwenden</string>
+    <string name="lock_title">PocketSSH ist gesperrt</string>
+    <string name="lock_enter_pin_hint">PIN eingeben</string>
+    <string name="lock_wrong_pin">Falsche PIN</string>
+    <string name="action_use_biometrics">Biometrie verwenden</string>
+
+    <!-- Host key dialog -->
+    <string name="hostkey_title">Unbekannter Server-Schlüssel</string>
+    <string name="hostkey_verify_text">Überprüfe diesen Fingerabdruck, bevor du dich mit %1$s:%2$d verbindest.</string>
+    <string name="action_trust_and_save">Vertrauen und speichern</string>
+</resources>

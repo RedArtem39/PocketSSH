@@ -5,6 +5,12 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,10 +57,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pocketssh.app.MainViewModel
+import com.pocketssh.app.R
 import com.pocketssh.app.ssh.RemoteEntry
 import com.pocketssh.app.ssh.SftpState
 import kotlinx.coroutines.delay
@@ -81,7 +89,8 @@ fun FileBrowserScreen(profileId: String, viewModel: MainViewModel, navigate: (St
             val name = queryFileName(context, uri) ?: "upload.bin"
             context.contentResolver.openInputStream(uri)?.let { input ->
                 viewModel.sftp.upload(name, input) { result ->
-                    toast = if (result.isSuccess) "Uploaded $name" else "Upload failed: ${result.exceptionOrNull()?.message}"
+                    toast = if (result.isSuccess) context.getString(R.string.toast_uploaded, name)
+                    else context.getString(R.string.toast_upload_failed, result.exceptionOrNull()?.message)
                 }
             }
         }
@@ -92,7 +101,8 @@ fun FileBrowserScreen(profileId: String, viewModel: MainViewModel, navigate: (St
         if (uri != null && entry != null) {
             context.contentResolver.openOutputStream(uri)?.let { output ->
                 viewModel.sftp.download(entry, output) { result ->
-                    toast = if (result.isSuccess) "Downloaded ${entry.name}" else "Download failed: ${result.exceptionOrNull()?.message}"
+                    toast = if (result.isSuccess) context.getString(R.string.toast_downloaded, entry.name)
+                    else context.getString(R.string.toast_download_failed, result.exceptionOrNull()?.message)
                 }
             }
         }
@@ -106,7 +116,7 @@ fun FileBrowserScreen(profileId: String, viewModel: MainViewModel, navigate: (St
             onCreate = { name ->
                 showNewFolder = false
                 viewModel.sftp.mkdir(name) { result ->
-                    if (result.isFailure) toast = "Could not create folder: ${result.exceptionOrNull()?.message}"
+                    if (result.isFailure) toast = context.getString(R.string.toast_mkdir_failed, result.exceptionOrNull()?.message)
                 }
             },
         )
@@ -117,60 +127,69 @@ fun FileBrowserScreen(profileId: String, viewModel: MainViewModel, navigate: (St
             TopAppBar(
                 title = {
                     Column {
-                        Text(profile?.name ?: "Files", fontWeight = FontWeight.Bold)
+                        Text(profile?.name ?: stringResource(R.string.files_title_default), fontWeight = FontWeight.Bold)
                         val path = (state as? SftpState.Ready)?.path
                         if (path != null) Text(path, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                navigationIcon = { IconButton(onClick = { navigate("servers") }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = { IconButton(onClick = { navigate("servers") }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cd_back)) } },
                 actions = {
-                    IconButton(onClick = { showNewFolder = true }, enabled = state is SftpState.Ready) { Icon(Icons.Default.CreateNewFolder, "New folder") }
-                    IconButton(onClick = { viewModel.sftp.refresh() }, enabled = state is SftpState.Ready) { Icon(Icons.Default.Refresh, "Refresh") }
+                    IconButton(onClick = { showNewFolder = true }, enabled = state is SftpState.Ready) { Icon(Icons.Default.CreateNewFolder, stringResource(R.string.cd_new_folder)) }
+                    IconButton(onClick = { viewModel.sftp.refresh() }, enabled = state is SftpState.Ready) { Icon(Icons.Default.Refresh, stringResource(R.string.cd_refresh)) }
                 },
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { uploadPicker.launch(arrayOf("*/*")) }) { Icon(Icons.Default.UploadFile, "Upload") }
+            FloatingActionButton(onClick = { uploadPicker.launch(arrayOf("*/*")) }) { Icon(Icons.Default.UploadFile, stringResource(R.string.cd_upload)) }
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            toast?.let { Text(it, Modifier.fillMaxWidth().padding(12.dp), color = MaterialTheme.colorScheme.primary, fontSize = 13.sp) }
-            when (val s = state) {
-                SftpState.Disconnected -> {}
-                SftpState.Connecting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                is SftpState.Failed -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Could not open this server", fontWeight = FontWeight.SemiBold)
-                        Text(s.message, color = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { profile?.let { viewModel.sftp.open(it) } }) { Text("Retry") }
+            AnimatedVisibility(
+                visible = toast != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Text(toast.orEmpty(), Modifier.fillMaxWidth().padding(12.dp), color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
+            }
+            Crossfade(targetState = state, label = "sftp-state") { s ->
+                when (s) {
+                    SftpState.Disconnected -> {}
+                    SftpState.Connecting -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                    is SftpState.Failed -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(stringResource(R.string.files_error_title), fontWeight = FontWeight.SemiBold)
+                            Text(s.message, color = MaterialTheme.colorScheme.error)
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = { profile?.let { viewModel.sftp.open(it) } }) { Text(stringResource(R.string.action_retry)) }
+                        }
                     }
-                }
-                is SftpState.Ready -> {
-                    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
-                        if (s.path != "/") {
-                            item {
-                                ListItem(
-                                    headlineContent = { Text("..") },
-                                    leadingContent = { Icon(Icons.Default.Folder, null) },
-                                    modifier = Modifier.clickable { viewModel.sftp.up() },
+                    is SftpState.Ready -> {
+                        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
+                            if (s.path != "/") {
+                                item(key = "up") {
+                                    ListItem(
+                                        headlineContent = { Text("..") },
+                                        leadingContent = { Icon(Icons.Default.Folder, null) },
+                                        modifier = Modifier.animateItem().clickable { viewModel.sftp.up() },
+                                    )
+                                }
+                            }
+                            items(s.entries, key = { it.path }) { entry ->
+                                RemoteEntryRow(
+                                    entry = entry,
+                                    modifier = Modifier.animateItem(),
+                                    onOpen = { if (entry.isDirectory) viewModel.sftp.navigate(entry.path) },
+                                    onDownload = {
+                                        pendingDownload = entry
+                                        downloadPicker.launch(entry.name)
+                                    },
+                                    onDelete = {
+                                        viewModel.sftp.delete(entry) { result ->
+                                            if (result.isFailure) toast = context.getString(R.string.toast_delete_failed, result.exceptionOrNull()?.message)
+                                        }
+                                    },
                                 )
                             }
-                        }
-                        items(s.entries, key = { it.path }) { entry ->
-                            RemoteEntryRow(
-                                entry = entry,
-                                onOpen = { if (entry.isDirectory) viewModel.sftp.navigate(entry.path) },
-                                onDownload = {
-                                    pendingDownload = entry
-                                    downloadPicker.launch(entry.name)
-                                },
-                                onDelete = {
-                                    viewModel.sftp.delete(entry) { result ->
-                                        if (result.isFailure) toast = "Delete failed: ${result.exceptionOrNull()?.message}"
-                                    }
-                                },
-                            )
                         }
                     }
                 }
@@ -180,19 +199,25 @@ fun FileBrowserScreen(profileId: String, viewModel: MainViewModel, navigate: (St
 }
 
 @Composable
-private fun RemoteEntryRow(entry: RemoteEntry, onOpen: () -> Unit, onDownload: () -> Unit, onDelete: () -> Unit) {
+private fun RemoteEntryRow(
+    entry: RemoteEntry,
+    onOpen: () -> Unit,
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var menu by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete ${entry.name}?") },
-            text = { Text(if (entry.isDirectory) "This will delete the empty folder." else "This cannot be undone.") },
+            title = { Text(stringResource(R.string.files_delete_title, entry.name)) },
+            text = { Text(if (entry.isDirectory) stringResource(R.string.files_delete_folder_text) else stringResource(R.string.files_delete_file_text)) },
             confirmButton = {
-                TextButton(onClick = { confirmDelete = false; onDelete() }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { confirmDelete = false; onDelete() }) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 
@@ -202,16 +227,16 @@ private fun RemoteEntryRow(entry: RemoteEntry, onOpen: () -> Unit, onDownload: (
         leadingContent = { Icon(if (entry.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile, null) },
         trailingContent = {
             Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "Options") }
+                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.cd_options)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     if (!entry.isDirectory) {
-                        DropdownMenuItem(text = { Text("Download") }, onClick = { menu = false; onDownload() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.action_download)) }, onClick = { menu = false; onDownload() })
                     }
-                    DropdownMenuItem(text = { Text("Delete") }, onClick = { menu = false; confirmDelete = true })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.action_delete)) }, onClick = { menu = false; confirmDelete = true })
                 }
             }
         },
-        modifier = Modifier.clickable(onClick = onOpen),
+        modifier = modifier.clickable(onClick = onOpen),
     )
 }
 
@@ -220,10 +245,10 @@ private fun NewFolderDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New folder") },
-        text = { OutlinedTextField(name, { name = it }, singleLine = true, label = { Text("Name") }) },
-        confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onCreate(name.trim()) }, enabled = name.isNotBlank()) { Text("Create") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = { Text(stringResource(R.string.files_new_folder_title)) },
+        text = { OutlinedTextField(name, { name = it }, singleLine = true, label = { Text(stringResource(R.string.label_name)) }) },
+        confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onCreate(name.trim()) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_create)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 

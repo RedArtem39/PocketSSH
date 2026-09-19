@@ -1,7 +1,13 @@
 package com.pocketssh.app.ui
 
+import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +35,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,13 +48,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pocketssh.app.AppLocale
 import com.pocketssh.app.MainViewModel
+import com.pocketssh.app.R
 import kotlinx.coroutines.delay
+
+private data class AppLanguage(val tag: String?, val nativeName: String)
+
+private val SupportedLanguages = listOf(
+    AppLanguage(null, ""),
+    AppLanguage("en", "English"),
+    AppLanguage("ru", "Русский"),
+    AppLanguage("uk", "Українська"),
+    AppLanguage("es", "Español"),
+    AppLanguage("de", "Deutsch"),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,10 +78,18 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     var hasPin by remember { mutableStateOf(viewModel.hasPin()) }
     var hosts by remember { mutableStateOf(viewModel.knownHosts()) }
     var toast by remember { mutableStateOf<String?>(null) }
+    var showLanguagePicker by remember { mutableStateOf(false) }
+    var currentTag by remember { mutableStateOf(AppLocale.get(context)) }
 
     var showExportPassphrase by remember { mutableStateOf(false) }
     var importPayload by remember { mutableStateOf<String?>(null) }
     var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
+
+    // stringResource() only works inside composition, so callbacks that run later (activity
+    // result, network/file result lambdas) capture these as plain values instead of calling it
+    // themselves.
+    val toastBackupExported = stringResource(R.string.toast_backup_exported)
+    val toastImportFailed = stringResource(R.string.toast_import_failed)
 
     toast?.let { current -> LaunchedEffect(current) { delay(3000); toast = null } }
 
@@ -69,8 +99,8 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
         if (uri != null && passphrase != null) {
             runCatching {
                 context.contentResolver.openOutputStream(uri)?.use { it.write(viewModel.exportBackup(passphrase).toByteArray(Charsets.UTF_8)) }
-                toast = "Backup exported"
-            }.onFailure { toast = "Export failed: ${it.message}" }
+                toast = toastBackupExported
+            }.onFailure { toast = context.getString(R.string.toast_export_failed, it.message) }
         }
     }
     val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -81,9 +111,22 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
         }
     }
 
+    if (showLanguagePicker) {
+        LanguageDialog(
+            currentTag = currentTag,
+            onDismiss = { showLanguagePicker = false },
+            onSelect = { tag ->
+                showLanguagePicker = false
+                currentTag = tag
+                AppLocale.set(context, tag)
+                (context as? Activity)?.recreate()
+            },
+        )
+    }
+
     if (showExportPassphrase) {
         PassphraseDialog(
-            title = "Set an export passphrase",
+            title = stringResource(R.string.dialog_export_passphrase_title),
             onDismiss = { showExportPassphrase = false },
             onConfirm = { passphrase ->
                 showExportPassphrase = false
@@ -95,13 +138,13 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
 
     importPayload?.let { payload ->
         PassphraseDialog(
-            title = "Enter the backup passphrase",
+            title = stringResource(R.string.dialog_import_passphrase_title),
             onDismiss = { importPayload = null },
             onConfirm = { passphrase ->
                 importPayload = null
                 runCatching { viewModel.importBackup(payload, passphrase) }
-                    .onSuccess { count -> toast = "Imported $count server(s)" }
-                    .onFailure { toast = "Import failed — wrong passphrase or corrupted file" }
+                    .onSuccess { count -> toast = context.getString(R.string.toast_imported, count) }
+                    .onFailure { toast = toastImportFailed }
             },
         )
     }
@@ -109,8 +152,8 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = { IconButton(onClick = { navigate("servers") }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                title = { Text(stringResource(R.string.settings_title)) },
+                navigationIcon = { IconButton(onClick = { navigate("servers") }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.cd_back)) } },
             )
         },
     ) { padding ->
@@ -118,19 +161,25 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            toast?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+            AnimatedVisibility(
+                visible = toast != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Text(toast.orEmpty(), color = MaterialTheme.colorScheme.primary)
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("App lock", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(stringResource(R.string.settings_app_lock), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 Text(
-                    if (hasPin) "A PIN is set — PocketSSH locks whenever it's backgrounded." else "No PIN set — PocketSSH does not lock.",
+                    if (hasPin) stringResource(R.string.settings_pin_set_desc) else stringResource(R.string.settings_pin_not_set_desc),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                 )
                 OutlinedTextField(
                     value = pin,
                     onValueChange = { pin = it.filter(Char::isDigit).take(9) },
-                    label = { Text("New PIN") },
+                    label = { Text(stringResource(R.string.label_new_pin)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -142,16 +191,16 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
                             viewModel.setPin(pin)
                             hasPin = true
                             pin = ""
-                            toast = "PIN saved"
+                            toast = context.getString(R.string.toast_pin_saved)
                         },
                         enabled = pin.isNotEmpty(),
-                    ) { Text(if (hasPin) "Change PIN" else "Set PIN") }
+                    ) { Text(if (hasPin) stringResource(R.string.action_change_pin) else stringResource(R.string.action_set_pin)) }
                     if (hasPin) {
                         OutlinedButton(onClick = {
                             viewModel.clearPin()
                             hasPin = false
-                            toast = "PIN removed"
-                        }) { Text("Remove PIN") }
+                            toast = context.getString(R.string.toast_pin_removed)
+                        }) { Text(stringResource(R.string.action_remove_pin)) }
                     }
                 }
             }
@@ -159,9 +208,21 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             HorizontalDivider()
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Known host keys", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(stringResource(R.string.settings_language), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                ListItem(
+                    modifier = Modifier.padding(horizontal = 0.dp),
+                    leadingContent = { Icon(Icons.Default.Language, null) },
+                    headlineContent = { Text(languageDisplayName(currentTag)) },
+                    trailingContent = { TextButton(onClick = { showLanguagePicker = true }) { Text(stringResource(R.string.action_edit)) } },
+                )
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.settings_known_hosts), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 if (hosts.isEmpty()) {
-                    Text("No servers trusted yet.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    Text(stringResource(R.string.settings_no_hosts), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 } else {
                     hosts.forEach { host ->
                         ListItem(
@@ -172,7 +233,7 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
                                 IconButton(onClick = {
                                     viewModel.forgetHost(host.host, host.port)
                                     hosts = viewModel.knownHosts()
-                                }) { Icon(Icons.Default.Delete, "Forget") }
+                                }) { Icon(Icons.Default.Delete, stringResource(R.string.cd_forget_host)) }
                             },
                         )
                     }
@@ -182,19 +243,51 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             HorizontalDivider()
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Backup", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(stringResource(R.string.settings_backup), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 Text(
-                    "Servers are encrypted with a passphrase you choose — keep it safe, it cannot be recovered.",
+                    stringResource(R.string.settings_backup_desc),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { showExportPassphrase = true }) { Text("Export backup") }
-                    OutlinedButton(onClick = { importPicker.launch(arrayOf("*/*")) }) { Text("Import backup") }
+                    OutlinedButton(onClick = { showExportPassphrase = true }) { Text(stringResource(R.string.action_export_backup)) }
+                    OutlinedButton(onClick = { importPicker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.action_import_backup)) }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun languageDisplayName(tag: String?): String {
+    if (tag == null) return stringResource(R.string.settings_language_system_default)
+    return SupportedLanguages.firstOrNull { it.tag == tag }?.nativeName ?: tag
+}
+
+@Composable
+private fun LanguageDialog(currentTag: String?, onDismiss: () -> Unit, onSelect: (String?) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_language)) },
+        text = {
+            Column {
+                SupportedLanguages.forEach { lang ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    ) {
+                        RadioButton(selected = lang.tag == currentTag, onClick = { onSelect(lang.tag) })
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (lang.tag == null) stringResource(R.string.settings_language_system_default) else lang.nativeName,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }
 
 @Composable
@@ -208,11 +301,11 @@ private fun PassphraseDialog(title: String, onDismiss: () -> Unit, onConfirm: (S
                 value = value,
                 onValueChange = { value = it },
                 singleLine = true,
-                label = { Text("Passphrase") },
+                label = { Text(stringResource(R.string.label_passphrase)) },
                 visualTransformation = PasswordVisualTransformation(),
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(value) }, enabled = value.isNotEmpty()) { Text("Continue") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onConfirm(value) }, enabled = value.isNotEmpty()) { Text(stringResource(R.string.action_continue)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
