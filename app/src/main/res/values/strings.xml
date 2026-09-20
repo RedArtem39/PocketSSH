@@ -193,10 +193,14 @@
     <string name="updates_no_archived">No previous versions saved yet.</string>
     <string name="updates_use">Use</string>
     <string name="updates_rollback_title">Roll back to %1$s</string>
-    <string name="updates_rollback_steps">Two steps, both confirmed by Android:\n\n1. Uninstall PocketSSH. Your servers stay in the backup folder.\n2. Install %1$s, then point it at the folder to bring them back.</string>
+    <string name="updates_rollback_steps">Two steps.
+
+1. Uninstall PocketSSH below. Your servers stay in the backup folder.
+2. Then open %1$s in the folder %2$s with a file manager and install it — PocketSSH will be gone by then, so it cannot do this part for you.
+
+Afterwards, point the reinstalled app at the same folder and your servers come back.</string>
     <string name="updates_rollback_no_backup">There is no backup in the folder. Rolling back now would lose your servers for good.</string>
     <string name="updates_step_uninstall">1. Uninstall</string>
-    <string name="updates_step_install">2. Install the old version</string>
     <string name="restore_found_title">Backup found</string>
     <string name="restore_found_desc">This install has no servers, but there is a backup in your folder.</string>
     <string name="restore_offer_title">Restoring from a backup</string>

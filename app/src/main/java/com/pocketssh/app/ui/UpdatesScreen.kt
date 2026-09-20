@@ -91,6 +91,7 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     var toast by remember { mutableStateOf<String?>(null) }
     var rollbackTarget by remember { mutableStateOf<StoredFile?>(null) }
     var includePrereleases by remember { mutableStateOf(false) }
+    val profiles by viewModel.profiles.collectAsState()
 
     // Re-read on every resume rather than once per composition: granting the permission happens
     // in a system screen, and coming back from it used to leave the Install button greyed out
@@ -149,10 +150,12 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     rollbackTarget?.let { target ->
         RollbackDialog(
             file = target,
-            hasBackup = backups.isNotEmpty(),
+            // Nothing to lose is as safe as having a backup: with no servers stored there is
+            // nothing an uninstall could destroy, and blocking the rollback then is just noise.
+            hasBackup = backups.isNotEmpty() || profiles.isEmpty(),
+            folderName = folderName,
             onDismiss = { rollbackTarget = null },
             onUninstall = { context.startActivity(viewModel.updates.uninstallIntent()) },
-            onInstall = { report(viewModel.updates.installFromFolder(target)) },
         )
     }
 
@@ -466,17 +469,24 @@ private fun RollbackSection(archived: List<StoredFile>, onPick: (StoredFile) -> 
 private fun RollbackDialog(
     file: StoredFile,
     hasBackup: Boolean,
+    folderName: String?,
     onDismiss: () -> Unit,
     onUninstall: () -> Unit,
-    onInstall: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Restore, null) },
-        title = { Text(stringResource(R.string.updates_rollback_title)) },
+        title = { Text(stringResource(R.string.updates_rollback_title, file.name.removePrefix("pocketssh-apk-"))) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.updates_rollback_steps, file.name.removePrefix("pocketssh-apk-")), fontSize = 13.sp)
+                Text(
+                    stringResource(
+                        R.string.updates_rollback_steps,
+                        file.name.removePrefix("pocketssh-apk-"),
+                        folderName ?: "—",
+                    ),
+                    fontSize = 13.sp,
+                )
                 if (!hasBackup) {
                     Text(
                         stringResource(R.string.updates_rollback_no_backup),
@@ -487,13 +497,12 @@ private fun RollbackDialog(
             }
         },
         confirmButton = {
-            Column {
-                TextButton(onClick = onUninstall, enabled = hasBackup) {
-                    Text(stringResource(R.string.updates_step_uninstall))
-                }
-                TextButton(onClick = onInstall, enabled = hasBackup) {
-                    Text(stringResource(R.string.updates_step_install))
-                }
+            // Only the uninstall is actionable from here. The install cannot be: once PocketSSH
+            // is gone there is no button left to press, and while it is still installed Android
+            // rejects the lower version code. So the dialog names the file and leaves that step
+            // to a file manager rather than offering a control that cannot work.
+            TextButton(onClick = onUninstall, enabled = hasBackup) {
+                Text(stringResource(R.string.updates_step_uninstall))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },

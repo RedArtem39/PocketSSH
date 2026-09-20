@@ -193,10 +193,14 @@
     <string name="updates_no_archived">Попередні версії не збережено.</string>
     <string name="updates_use">Вибрати</string>
     <string name="updates_rollback_title">Відкат до %1$s</string>
-    <string name="updates_rollback_steps">Два кроки, обидва підтверджує Android:\n\n1. Видалити PocketSSH. Сервери залишаться в теці копій.\n2. Встановити %1$s і вказати ту саму теку, щоб повернути їх.</string>
+    <string name="updates_rollback_steps">Два кроки.
+
+1. Видаліть PocketSSH кнопкою нижче. Сервери залишаться в теці копій.
+2. Потім відкрийте %1$s у теці %2$s через файловий менеджер і встановіть — PocketSSH на той момент уже не буде, сам він цього кроку не зробить.
+
+Після цього вкажіть перевстановленому застосунку ту саму теку, і сервери повернуться.</string>
     <string name="updates_rollback_no_backup">У теці немає резервної копії. Відкат зараз втратить сервери назавжди.</string>
     <string name="updates_step_uninstall">1. Видалити</string>
-    <string name="updates_step_install">2. Встановити стару версію</string>
     <string name="restore_found_title">Знайдено резервну копію</string>
     <string name="restore_found_desc">У цій установці немає серверів, але в теці є резервна копія.</string>
     <string name="restore_offer_title">Відновлення з копії</string>
