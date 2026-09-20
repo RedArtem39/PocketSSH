@@ -67,19 +67,20 @@ PocketSSH checks its own GitHub releases, shows what changed, downloads the APK 
 the system installer. Android still asks for confirmation and for permission to install from this
 source — silent installation belongs to system installers alone.
 
-Rolling back needs a second package, and the reason is structural. Android will not install an
-older version over a newer one, so a downgrade has to uninstall first — and an app cannot install
-anything after uninstalling itself. `PocketSSH Recovery` exists for that gap: a headless service
-with no activity and no launcher entry, which PocketSSH calls on its way out. It copies the saved
-APK, asks for the uninstall, and installs the older build once that finishes.
+Rolling back is an ordinary install over the top, and it works because `versionCode` is frozen.
 
-Android still confirms the uninstall and the install. Only a system installer can skip those, and
-this is not one. What the helper removes is having to find the APK in a file manager afterwards.
+Android refuses to install a *lower* version code over a higher one, but has no objection to an
+*equal* one — that is a plain reinstall that keeps data. Nothing here reads the code anyway: the
+updater compares `versionName` against the GitHub tag. So the code stays at a constant and only
+the name moves, which makes a downgrade behave exactly like an upgrade: one confirmation, data
+intact, no uninstall.
 
-The service is exported behind a `signature` permission, so only a build signed with the same key
-can start it. Without the helper installed, PocketSSH falls back to naming the file and the
-folder and leaving the second step to you — because once it is uninstalled there is no button of
-its own left to press.
+Releases published before the freeze still have sequential codes, and Android will not go back to
+those. `PocketSSH Recovery` covers that case: a headless service, no activity and no launcher
+entry, which PocketSSH calls on its way out. It copies the saved APK, requests the uninstall, and
+installs the older build once that finishes — the step PocketSSH cannot perform for itself,
+because a package cannot install anything after uninstalling itself. Its service is exported
+behind a `signature` permission, so only a build signed with the same key can start it.
 
 The automatic backups are what make that survivable. They are written before every update and
 after every change, into that same folder — outside app storage, because the whole point is

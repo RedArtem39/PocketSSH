@@ -219,4 +219,6 @@
     <string name="updates_rollback_now">Откатить сейчас</string>
     <string name="updates_install_helper">Установить помощник</string>
     <string name="updates_helper_needs_check">Сначала проверьте обновления, чтобы помощник можно было скачать.</string>
+    <string name="updates_rollback_direct">Установка этой версии поверх текущей сохранит все серверы и настройки. Android один раз попросит подтвердить.</string>
+    <string name="updates_rollback_via_helper">Откатить через помощник (с удалением)</string>
 </resources>

@@ -49,8 +49,8 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
-// No Compose and no AndroidX beyond this: the whole point is a small, boring APK that works when
-// the main one does not.
+// No dependencies at all beyond the Kotlin stdlib the plugin adds. This APK is bundled inside
+// the main one, so every kilobyte here is a kilobyte on every install; the service uses nothing
+// but framework APIs.
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
 }

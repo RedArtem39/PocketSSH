@@ -71,6 +71,7 @@ import com.pocketssh.app.MainViewModel
 import com.pocketssh.app.R
 import com.pocketssh.app.data.StoredFile
 import com.pocketssh.app.update.InstallResult
+import com.pocketssh.app.update.InstallStatusReceiver
 import com.pocketssh.app.update.ReleaseInfo
 import com.pocketssh.app.update.UpdateState
 import java.text.DateFormat
@@ -96,6 +97,13 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     // Re-read on resume like the install permission: the helper is installed from inside this
     // screen, and the dialog has to notice once it lands.
     var hasRecovery by remember { mutableStateOf(viewModel.updates.isRecoveryInstalled()) }
+
+    // Reported by the system after the session is committed, so it arrives well after the call
+    // that started it has returned. Android's own wording is what tells the user which of the
+    // two rollback routes they have ended up in.
+    val installFailure by InstallStatusReceiver.lastFailure.collectAsState()
+    var installError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(installFailure) { installFailure?.let { installError = it } }
 
     // Re-read on every resume rather than once per composition: granting the permission happens
     // in a system screen, and coming back from it used to leave the Install button greyed out
@@ -163,7 +171,15 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             hasRecovery = hasRecovery,
             helperBusy = helperBusy,
             folderName = folderName,
-            onDismiss = { rollbackTarget = null },
+            installError = installError,
+            onDismiss = {
+                rollbackTarget = null
+                installError = null
+            },
+            onDirectInstall = {
+                installError = null
+                report(viewModel.updates.installFromFolder(target))
+            },
             onUninstall = { context.startActivity(viewModel.updates.uninstallIntent()) },
             onRollback = {
                 rollbackTarget = null
@@ -499,8 +515,10 @@ private fun RollbackDialog(
     hasRecovery: Boolean,
     helperBusy: Boolean,
     folderName: String?,
+    installError: String?,
     onDismiss: () -> Unit,
     onUninstall: () -> Unit,
+    onDirectInstall: () -> Unit,
     onRollback: () -> Unit,
     onInstallHelper: () -> Unit,
 ) {
@@ -510,14 +528,20 @@ private fun RollbackDialog(
         title = { Text(stringResource(R.string.updates_rollback_title, file.name.removePrefix("pocketssh-apk-"))) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    stringResource(
-                        if (hasRecovery) R.string.updates_rollback_with_helper else R.string.updates_rollback_steps,
-                        file.name.removePrefix("pocketssh-apk-"),
-                        folderName ?: "—",
-                    ),
-                    fontSize = 13.sp,
-                )
+                Text(stringResource(R.string.updates_rollback_direct), fontSize = 13.sp)
+                // Only reachable for builds published before the version code was frozen, which
+                // is the one case Android still refuses outright.
+                installError?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                    Text(
+                        stringResource(
+                            if (hasRecovery) R.string.updates_rollback_with_helper else R.string.updates_rollback_steps,
+                            file.name.removePrefix("pocketssh-apk-"),
+                            folderName ?: "—",
+                        ),
+                        fontSize = 13.sp,
+                    )
+                }
                 if (!hasBackup) {
                     Text(
                         stringResource(R.string.updates_rollback_no_backup),
@@ -525,31 +549,28 @@ private fun RollbackDialog(
                         fontSize = 13.sp,
                     )
                 }
-                if (!hasRecovery) {
-                    Text(
-                        stringResource(R.string.updates_helper_pitch),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         },
         confirmButton = {
-            // With the helper installed this is one button, because a separate package outlives
-            // the uninstall and can do the install afterwards. Without it, the install step has
-            // no possible control — once PocketSSH is gone there is nothing left to press — so
-            // only the uninstall is offered and the dialog names the file to open by hand.
-            if (hasRecovery) {
-                TextButton(onClick = onRollback, enabled = hasBackup) {
+            Column {
+                // The ordinary route now: the version code is frozen, so this is a plain install
+                // over the top that keeps every setting. Only a build from before the freeze
+                // falls through to the options below.
+                TextButton(onClick = onDirectInstall) {
                     Text(stringResource(R.string.updates_rollback_now))
                 }
-            } else {
-                Column {
-                    TextButton(onClick = onInstallHelper, enabled = !helperBusy) {
-                        Text(stringResource(R.string.updates_install_helper))
-                    }
-                    TextButton(onClick = onUninstall, enabled = hasBackup) {
-                        Text(stringResource(R.string.updates_step_uninstall))
+                if (installError != null) {
+                    if (hasRecovery) {
+                        TextButton(onClick = onRollback, enabled = hasBackup) {
+                            Text(stringResource(R.string.updates_rollback_via_helper))
+                        }
+                    } else {
+                        TextButton(onClick = onInstallHelper, enabled = !helperBusy) {
+                            Text(stringResource(R.string.updates_install_helper))
+                        }
+                        TextButton(onClick = onUninstall, enabled = hasBackup) {
+                            Text(stringResource(R.string.updates_step_uninstall))
+                        }
                     }
                 }
             }

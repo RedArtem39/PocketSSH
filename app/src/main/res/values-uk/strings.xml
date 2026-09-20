@@ -219,4 +219,6 @@
     <string name="updates_rollback_now">Відкотити зараз</string>
     <string name="updates_install_helper">Встановити помічник</string>
     <string name="updates_helper_needs_check">Спершу перевірте оновлення, щоб помічника можна було завантажити.</string>
+    <string name="updates_rollback_direct">Встановлення цієї версії поверх поточної збереже всі сервери та налаштування. Android один раз попросить підтвердити.</string>
+    <string name="updates_rollback_via_helper">Відкотити через помічник (з видаленням)</string>
 </resources>
