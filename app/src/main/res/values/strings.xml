@@ -123,4 +123,42 @@
     <string name="hostkey_title">Unknown server key</string>
     <string name="hostkey_verify_text">Verify this fingerprint before connecting to %1$s:%2$d.</string>
     <string name="action_trust_and_save">Trust and save</string>
+
+    <!-- Lock screen style -->
+    <string name="action_save">Save</string>
+    <string name="lockstyle_title">Lock screen style</string>
+    <string name="lockstyle_entry_desc">Background, colours, key labels and animations</string>
+    <string name="lockstyle_reset">Reset</string>
+    <string name="lockstyle_accent">Accent colour</string>
+    <string name="lockstyle_background">Background</string>
+    <string name="lockstyle_bg_aurora">Aurora</string>
+    <string name="lockstyle_bg_waves">Waves</string>
+    <string name="lockstyle_bg_grid">Grid</string>
+    <string name="lockstyle_bg_rain">Rain</string>
+    <string name="lockstyle_bg_solid">Plain</string>
+    <string name="lockstyle_key_shape">Key shape</string>
+    <string name="lockstyle_shape_circle">Circle</string>
+    <string name="lockstyle_shape_squircle">Squircle</string>
+    <string name="lockstyle_shape_rounded">Rounded</string>
+    <string name="lockstyle_key_style">Key style</string>
+    <string name="lockstyle_style_glass">Glass</string>
+    <string name="lockstyle_style_solid">Solid</string>
+    <string name="lockstyle_style_outline">Outline</string>
+    <string name="lockstyle_style_ghost">Ghost</string>
+    <string name="lockstyle_key_size">Key size</string>
+    <string name="lockstyle_keys">Keys</string>
+    <string name="lockstyle_keys_desc">Tap a key to change what it shows. Labels and icons are cosmetic - each key still types its own digit.</string>
+    <string name="lockstyle_key_n">Key %1$d</string>
+    <string name="lockstyle_key_editor_desc">Leave the label empty for a blank key. Pick an icon to show instead of, or above, the label.</string>
+    <string name="lockstyle_key_label">Label</string>
+    <string name="lockstyle_confirm_key">Confirm</string>
+    <string name="lockstyle_confirm_color">Colour</string>
+    <string name="lockstyle_text">Text</string>
+    <string name="lockstyle_greeting">Greeting</string>
+    <string name="lockstyle_behaviour">Behaviour</string>
+    <string name="lockstyle_show_clock">Show clock</string>
+    <string name="lockstyle_show_hint">Show hint</string>
+    <string name="lockstyle_haptics">Haptic feedback</string>
+    <string name="lockstyle_auto_submit">Unlock on last digit</string>
+    <string name="lockstyle_auto_submit_desc">Check the PIN as soon as enough digits are typed</string>
 </resources>

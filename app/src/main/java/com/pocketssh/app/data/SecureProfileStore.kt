@@ -58,8 +58,18 @@ class SecureProfileStore(context: Context) {
         preferences.edit()
             .putString("pin_salt", encrypt(Base64.encodeToString(salt, Base64.NO_WRAP)))
             .putString("pin_hash", encrypt(hashPin(pin, salt)))
+            .putString("pin_length", encrypt(pin.length.toString()))
             .apply()
     }
+
+    /**
+     * How many digits the stored PIN has, or 0 when that isn't known — PINs saved before this
+     * was recorded have no length entry. Callers use it purely to draw the right number of
+     * placeholder dots and to auto-submit on the last digit, so 0 just means "fall back".
+     */
+    fun pinLength(): Int = preferences.getString("pin_length", null)
+        ?.let { runCatching { decrypt(it).toInt() }.getOrNull() }
+        ?: 0
 
     fun verifyPin(pin: String): Boolean {
         val saltEncoded = preferences.getString("pin_salt", null)?.let(::decrypt) ?: return false
@@ -69,7 +79,7 @@ class SecureProfileStore(context: Context) {
     }
 
     fun clearPin() {
-        preferences.edit().remove("pin_salt").remove("pin_hash").apply()
+        preferences.edit().remove("pin_salt").remove("pin_hash").remove("pin_length").apply()
     }
 
     private fun hashPin(pin: String, salt: ByteArray): String {

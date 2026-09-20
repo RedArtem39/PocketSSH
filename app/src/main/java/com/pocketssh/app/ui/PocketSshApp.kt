@@ -42,6 +42,7 @@ fun PocketSshApp(viewModel: MainViewModel, destination: String, navigate: (Strin
             dest == "servers" -> ServerListScreen(viewModel, navigate)
             dest == "terminal" -> TerminalScreen(viewModel, navigate)
             dest == "settings" -> SettingsScreen(viewModel, navigate)
+            dest == "lock_style" -> LockStyleScreen(viewModel, navigate)
             dest.startsWith("edit:") -> {
                 val id = dest.removePrefix("edit:")
                 val profiles by viewModel.profiles.collectAsState()

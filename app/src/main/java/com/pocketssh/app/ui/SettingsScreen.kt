@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,9 +23,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -203,6 +206,13 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
                         }) { Text(stringResource(R.string.action_remove_pin)) }
                     }
                 }
+                ListItem(
+                    modifier = Modifier.clickable { navigate("lock_style") },
+                    leadingContent = { Icon(Icons.Default.Palette, null) },
+                    headlineContent = { Text(stringResource(R.string.lockstyle_title)) },
+                    supportingContent = { Text(stringResource(R.string.lockstyle_entry_desc), fontSize = 12.sp) },
+                    trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
+                )
             }
 
             HorizontalDivider()

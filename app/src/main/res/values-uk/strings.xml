@@ -123,4 +123,42 @@
     <string name="hostkey_title">Невідомий ключ сервера</string>
     <string name="hostkey_verify_text">Перевірте цей відбиток перед підключенням до %1$s:%2$d.</string>
     <string name="action_trust_and_save">Довіряти та зберегти</string>
+
+    <!-- Lock screen style -->
+    <string name="action_save">Зберегти</string>
+    <string name="lockstyle_title">Стиль екрана блокування</string>
+    <string name="lockstyle_entry_desc">Фон, кольори, підписи клавіш та анімації</string>
+    <string name="lockstyle_reset">Скинути</string>
+    <string name="lockstyle_accent">Акцентний колір</string>
+    <string name="lockstyle_background">Фон</string>
+    <string name="lockstyle_bg_aurora">Аврора</string>
+    <string name="lockstyle_bg_waves">Хвилі</string>
+    <string name="lockstyle_bg_grid">Сітка</string>
+    <string name="lockstyle_bg_rain">Дощ</string>
+    <string name="lockstyle_bg_solid">Без фону</string>
+    <string name="lockstyle_key_shape">Форма клавіш</string>
+    <string name="lockstyle_shape_circle">Коло</string>
+    <string name="lockstyle_shape_squircle">Сквіркл</string>
+    <string name="lockstyle_shape_rounded">Заокруглена</string>
+    <string name="lockstyle_key_style">Стиль клавіш</string>
+    <string name="lockstyle_style_glass">Скло</string>
+    <string name="lockstyle_style_solid">Заливка</string>
+    <string name="lockstyle_style_outline">Контур</string>
+    <string name="lockstyle_style_ghost">Без фону</string>
+    <string name="lockstyle_key_size">Розмір клавіш</string>
+    <string name="lockstyle_keys">Клавіші</string>
+    <string name="lockstyle_keys_desc">Торкніться клавіші, щоб змінити її вигляд. Підписи та іконки — лише оформлення: клавіша однаково вводить свою цифру.</string>
+    <string name="lockstyle_key_n">Клавіша %1$d</string>
+    <string name="lockstyle_key_editor_desc">Залиште підпис порожнім, щоб клавіша була порожньою. Іконка показується замість підпису або над ним.</string>
+    <string name="lockstyle_key_label">Підпис</string>
+    <string name="lockstyle_confirm_key">Підтвердити</string>
+    <string name="lockstyle_confirm_color">Колір</string>
+    <string name="lockstyle_text">Текст</string>
+    <string name="lockstyle_greeting">Привітання</string>
+    <string name="lockstyle_behaviour">Поведінка</string>
+    <string name="lockstyle_show_clock">Показувати годинник</string>
+    <string name="lockstyle_show_hint">Показувати підказку</string>
+    <string name="lockstyle_haptics">Вібровідгук</string>
+    <string name="lockstyle_auto_submit">Розблокувати на останній цифрі</string>
+    <string name="lockstyle_auto_submit_desc">Перевіряти PIN, щойно введено потрібну кількість цифр</string>
 </resources>

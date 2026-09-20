@@ -123,4 +123,42 @@
     <string name="hostkey_title">Clave de servidor desconocida</string>
     <string name="hostkey_verify_text">Verifica esta huella antes de conectar con %1$s:%2$d.</string>
     <string name="action_trust_and_save">Confiar y guardar</string>
+
+    <!-- Lock screen style -->
+    <string name="action_save">Guardar</string>
+    <string name="lockstyle_title">Estilo de la pantalla de bloqueo</string>
+    <string name="lockstyle_entry_desc">Fondo, colores, etiquetas de teclas y animaciones</string>
+    <string name="lockstyle_reset">Restablecer</string>
+    <string name="lockstyle_accent">Color de acento</string>
+    <string name="lockstyle_background">Fondo</string>
+    <string name="lockstyle_bg_aurora">Aurora</string>
+    <string name="lockstyle_bg_waves">Ondas</string>
+    <string name="lockstyle_bg_grid">Cuadrícula</string>
+    <string name="lockstyle_bg_rain">Lluvia</string>
+    <string name="lockstyle_bg_solid">Liso</string>
+    <string name="lockstyle_key_shape">Forma de las teclas</string>
+    <string name="lockstyle_shape_circle">Círculo</string>
+    <string name="lockstyle_shape_squircle">Squircle</string>
+    <string name="lockstyle_shape_rounded">Redondeada</string>
+    <string name="lockstyle_key_style">Estilo de las teclas</string>
+    <string name="lockstyle_style_glass">Cristal</string>
+    <string name="lockstyle_style_solid">Sólido</string>
+    <string name="lockstyle_style_outline">Contorno</string>
+    <string name="lockstyle_style_ghost">Invisible</string>
+    <string name="lockstyle_key_size">Tamaño de las teclas</string>
+    <string name="lockstyle_keys">Teclas</string>
+    <string name="lockstyle_keys_desc">Toca una tecla para cambiar lo que muestra. Las etiquetas y los iconos son decorativos: cada tecla sigue escribiendo su dígito.</string>
+    <string name="lockstyle_key_n">Tecla %1$d</string>
+    <string name="lockstyle_key_editor_desc">Deja la etiqueta vacía para una tecla en blanco. El icono se muestra en lugar de la etiqueta o encima de ella.</string>
+    <string name="lockstyle_key_label">Etiqueta</string>
+    <string name="lockstyle_confirm_key">Confirmar</string>
+    <string name="lockstyle_confirm_color">Color</string>
+    <string name="lockstyle_text">Texto</string>
+    <string name="lockstyle_greeting">Saludo</string>
+    <string name="lockstyle_behaviour">Comportamiento</string>
+    <string name="lockstyle_show_clock">Mostrar reloj</string>
+    <string name="lockstyle_show_hint">Mostrar sugerencia</string>
+    <string name="lockstyle_haptics">Respuesta háptica</string>
+    <string name="lockstyle_auto_submit">Desbloquear al último dígito</string>
+    <string name="lockstyle_auto_submit_desc">Comprobar el PIN en cuanto se escriban suficientes dígitos</string>
 </resources>

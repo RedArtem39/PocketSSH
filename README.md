@@ -1,0 +1,110 @@
+# PocketSSH
+
+An SSH client for Android. Keep a list of servers, open a real terminal against one of them,
+browse its filesystem over SFTP, and lock the whole thing behind a PIN when you put the phone
+down.
+
+Single-module Kotlin app, Jetpack Compose throughout, Material 3. Minimum Android 8.0 (API 26).
+
+## Terminal
+
+The terminal is a from-scratch ANSI/VT100 emulator rather than a text view that prints whatever
+the server sends. It handles SGR attributes, cursor movement, the erase sequences and the
+alternate screen, which is what full-screen programs need — `vim`, `htop`, `less` and `mc` all
+render properly. Scrollback holds 2000 lines.
+
+There are two input modes. Line mode gives you a text field and sends a command when you hit
+send, which suits the on-screen keyboard. Raw mode forwards every keystroke immediately, which
+is what you want inside an editor. Esc, Tab, Ctrl+C and Ctrl+D have their own keys.
+
+A subset of the kitty graphics protocol is supported, so images sent inline show up in the
+buffer. Only direct and base64 transmission — file-based transmission names paths on the remote
+host, which a client-side emulator has no way to read, and kitty itself declines it over SSH for
+the same reason.
+
+The emulator has no Android dependencies at all, so it is covered by plain JVM unit tests.
+
+## Files
+
+SFTP browsing runs over the same connection logic as the shell: list a directory, create
+folders, delete entries, and upload or download through the system file picker.
+
+## Servers and secrets
+
+A server profile is a name, host, port, username, and either a password or a private key with an
+optional passphrase. Profiles live in encrypted SharedPreferences — the whole JSON blob is sealed
+with AES-GCM under a key that never leaves the Android Keystore. You can decline to save the
+secret, in which case only the connection details are stored.
+
+Host keys use trust on first use. The first time you reach a server, PocketSSH shows the key's
+SHA-256 fingerprint and asks whether to trust it. Accepted fingerprints are remembered and
+checked on every later connection; a mismatch fails the connection. Settings lists everything
+you have trusted so you can forget individual entries.
+
+Backups are a single file you can put anywhere. The profile list is encrypted with a passphrase
+you choose, derived with PBKDF2-HMAC-SHA256 at 210,000 iterations and sealed with AES-256-GCM.
+The passphrase is not stored and cannot be recovered. Imported profiles are given fresh ids, so
+importing never overwrites a server you already have.
+
+## App lock
+
+Setting a PIN makes PocketSSH lock every time it goes to the background. Biometric unlock is
+offered when the device has it enrolled. The PIN itself is stored as a salted SHA-256 hash inside
+the same Keystore-encrypted preferences.
+
+The lock screen is customisable under Settings → App lock → Lock screen style, with a live
+preview. You can change the accent colour, pick one of five backdrops (aurora, waves, grid, rain
+or plain), switch the key shape and fill style, resize the keys, set your own greeting, and turn
+the clock, hint text, haptics and unlock-on-last-digit off or on.
+
+Each key can also carry its own label and icon, including the confirm key. This is cosmetic
+only: a key still types the digit it was always going to type, so restyling the pad cannot change
+what your PIN is or lock you out.
+
+## Languages
+
+English, Russian, Ukrainian, Spanish and German, switchable in Settings independently of the
+system language.
+
+## Building
+
+Needs JDK 17. Everything else comes down with Gradle.
+
+```
+./gradlew assembleDebug        # APK at app/build/outputs/apk/debug/
+./gradlew installDebug         # build and push to a connected device
+./gradlew testDebugUnitTest    # JVM tests
+./gradlew connectedDebugAndroidTest   # instrumented tests, needs a device or emulator
+```
+
+Note that the `release` build type is signed with the debug keystore. That is deliberate, so a
+minified R8 build can be installed for local testing, but it means release output is not fit to
+publish anywhere. Swap in a real keystore first.
+
+CI runs unit tests, lint and a debug assemble on every push and pull request, plus instrumented
+tests on an API 30 emulator.
+
+## Layout
+
+```
+app/src/main/java/com/pocketssh/app/
+  data/        profiles, Keystore-backed storage, backup encryption, lock screen settings
+  ssh/         connect/auth/host-key verification, shell session, SFTP
+  terminal/    the ANSI emulator and its types — no Android imports
+  ui/          Compose screens
+  ui/lock/     lock screen backdrops and keypad
+```
+
+## Dependencies
+
+[sshj](https://github.com/hierynomus/sshj) for the SSH transport, with BouncyCastle as its
+crypto provider. AndroidX Compose, Lifecycle, Fragment and Biometric. Nothing else.
+
+## Status
+
+A personal project, not a product. It works, and it is used, but there is no release channel and
+no support. Expect rough edges.
+
+## Licence
+
+CC0 1.0 Universal — public domain. Do what you like with it. See [LICENSE](LICENSE).

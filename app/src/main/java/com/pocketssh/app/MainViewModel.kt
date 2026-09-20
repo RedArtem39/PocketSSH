@@ -7,6 +7,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.pocketssh.app.data.BackupCodec
 import com.pocketssh.app.data.KnownHost
+import com.pocketssh.app.data.LockAppearance
+import com.pocketssh.app.data.LockAppearanceStore
 import com.pocketssh.app.data.SecureProfileStore
 import com.pocketssh.app.data.ServerProfile
 import com.pocketssh.app.ssh.SftpManager
@@ -29,6 +31,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLocked = MutableStateFlow(store.hasPin())
     val isLocked = _isLocked.asStateFlow()
 
+    private val appearanceStore = LockAppearanceStore(application)
+    private val _lockAppearance = MutableStateFlow(appearanceStore.load())
+    val lockAppearance = _lockAppearance.asStateFlow()
+
     private val lifecycleObserver = object : DefaultLifecycleObserver {
         override fun onStop(owner: LifecycleOwner) {
             if (store.hasPin()) _isLocked.value = true
@@ -39,14 +45,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
     }
 
-    fun unlock(pin: String): Boolean {
-        val ok = store.verifyPin(pin)
-        if (ok) _isLocked.value = false
-        return ok
+    /**
+     * Checks the PIN without unlocking. Split from [commitUnlock] so the lock screen can play
+     * its success animation while still locked — flipping the flag here would swap the screen
+     * out from under it mid-frame.
+     */
+    fun verifyPin(pin: String): Boolean = store.verifyPin(pin)
+
+    fun commitUnlock() {
+        _isLocked.value = false
     }
 
-    fun unlockWithBiometric() {
-        _isLocked.value = false
+    fun pinLength(): Int = store.pinLength()
+
+    fun updateLockAppearance(appearance: LockAppearance) {
+        _lockAppearance.value = appearance
+        appearanceStore.save(appearance)
     }
 
     fun hasPin(): Boolean = store.hasPin()
