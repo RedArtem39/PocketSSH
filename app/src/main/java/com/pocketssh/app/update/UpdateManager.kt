@@ -165,6 +165,41 @@ class UpdateManager(
 
     fun canRequestInstalls(): Boolean = context.packageManager.canRequestPackageInstalls()
 
+    fun isRecoveryInstalled(): Boolean =
+        runCatching { context.packageManager.getPackageInfo(RECOVERY_PACKAGE, 0) }.isSuccess
+
+    /**
+     * Hands a saved APK to the recovery app, which survives PocketSSH being uninstalled and can
+     * therefore install the older build afterwards — the step this app cannot perform for itself.
+     * The read grant travels with the intent; recovery copies the file out immediately, because
+     * the permission belongs to a package that is about to disappear.
+     */
+    fun launchRecovery(stored: StoredFile): InstallResult {
+        val intent = Intent()
+            .setClassName(RECOVERY_PACKAGE, "$RECOVERY_PACKAGE.RecoveryService")
+            .putExtra("apk_uri", stored.uri)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return runCatching {
+            // A plain service, not an activity: the helper has no interface. Started while this
+            // app is in the foreground, which is what makes a background service start legal.
+            context.startService(intent)
+            InstallResult.Started
+        }.getOrElse { InstallResult.Failed(it.message ?: "Recovery helper would not start") }
+    }
+
+    /** Downloads the recovery APK attached to [release] and offers it for install. */
+    suspend fun installRecovery(release: ReleaseInfo): InstallResult {
+        val url = release.recoveryUrl ?: return InstallResult.Failed("This release has no recovery APK")
+        if (!canRequestInstalls()) return InstallResult.NeedsPermission
+        val file = withContext(Dispatchers.IO) {
+            runCatching {
+                File(cacheDir(), "PocketSSH-Recovery.apk").also { fetch(url, it) { _, _ -> } }
+            }
+        }.getOrElse { return InstallResult.Failed(it.message ?: "Download failed") }
+        archive(file)
+        return install(file)
+    }
+
     /** Opens the system page where installs from this app are allowed. */
     fun installPermissionIntent(): Intent =
         Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
@@ -230,6 +265,7 @@ class UpdateManager(
 
     private companion object {
         const val APK_PREFIX = "pocketssh-apk-"
+        const val RECOVERY_PACKAGE = "com.pocketssh.recovery"
         const val SESSION_ENTRY = "package"
         const val ACTION_INSTALL_STATUS = "com.pocketssh.app.INSTALL_STATUS"
         const val KEEP_APKS = 3

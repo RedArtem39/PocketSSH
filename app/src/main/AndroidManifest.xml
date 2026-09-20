@@ -4,6 +4,15 @@
     <!-- Needed to hand a downloaded APK to the package installer. The system still shows its own
          confirmation dialog; this only allows PocketSSH to be the source of the request. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Declared signature-level by the recovery helper, so this is only granted because both
+         APKs are signed with the same key. -->
+    <uses-permission android:name="com.pocketssh.recovery.PERFORM_ROLLBACK" />
+    <!-- Needed on Android 11+ to detect the recovery helper and start it; without this the
+         package is invisible no matter that it is installed. -->
+    <queries>
+        <package android:name="com.pocketssh.recovery" />
+    </queries>
+
     <application
         android:name=".PocketSshApplication"
         android:allowBackup="false"

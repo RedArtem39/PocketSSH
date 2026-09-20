@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
+    <!-- Signature-level, so only a build signed with the same key as this one can start the
+         service. Both APKs come from the same keystore; anything else is refused by the system
+         before the service is reached. -->
+    <permission
+        android:name="com.pocketssh.recovery.PERFORM_ROLLBACK"
+        android:protectionLevel="signature" />
+
+    <!-- Needed on Android 11+ to see whether PocketSSH is installed; without it getPackageInfo
+         reports the package as missing no matter that it is there. -->
+    <queries>
+        <package android:name="com.pocketssh.app" />
+    </queries>
+
+    <!-- No activity and no launcher entry on purpose: this has no interface, it is an API that
+         PocketSSH calls on its way out. -->
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/recovery_app_name">
+        <service
+            android:name=".RecoveryService"
+            android:exported="true"
+            android:permission="com.pocketssh.recovery.PERFORM_ROLLBACK" />
+    </application>
+</manifest>

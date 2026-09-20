@@ -92,6 +92,10 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     var rollbackTarget by remember { mutableStateOf<StoredFile?>(null) }
     var includePrereleases by remember { mutableStateOf(false) }
     val profiles by viewModel.profiles.collectAsState()
+    var helperBusy by remember { mutableStateOf(false) }
+    // Re-read on resume like the install permission: the helper is installed from inside this
+    // screen, and the dialog has to notice once it lands.
+    var hasRecovery by remember { mutableStateOf(viewModel.updates.isRecoveryInstalled()) }
 
     // Re-read on every resume rather than once per composition: granting the permission happens
     // in a system screen, and coming back from it used to leave the Install button greyed out
@@ -100,7 +104,10 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) canInstall = viewModel.updates.canRequestInstalls()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                canInstall = viewModel.updates.canRequestInstalls()
+                hasRecovery = viewModel.updates.isRecoveryInstalled()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -153,9 +160,29 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             // Nothing to lose is as safe as having a backup: with no servers stored there is
             // nothing an uninstall could destroy, and blocking the rollback then is just noise.
             hasBackup = backups.isNotEmpty() || profiles.isEmpty(),
+            hasRecovery = hasRecovery,
+            helperBusy = helperBusy,
             folderName = folderName,
             onDismiss = { rollbackTarget = null },
             onUninstall = { context.startActivity(viewModel.updates.uninstallIntent()) },
+            onRollback = {
+                rollbackTarget = null
+                report(viewModel.updates.launchRecovery(target))
+            },
+            onInstallHelper = {
+                val release = (state as? UpdateState.Available)?.release
+                    ?: (state as? UpdateState.ReadyToInstall)?.release
+                    ?: viewModel.updates.releases.value.firstOrNull()
+                if (release == null) {
+                    toast = context.getString(R.string.updates_helper_needs_check)
+                } else {
+                    helperBusy = true
+                    scope.launch {
+                        report(viewModel.updates.installRecovery(release))
+                        helperBusy = false
+                    }
+                }
+            },
         )
     }
 
@@ -469,9 +496,13 @@ private fun RollbackSection(archived: List<StoredFile>, onPick: (StoredFile) -> 
 private fun RollbackDialog(
     file: StoredFile,
     hasBackup: Boolean,
+    hasRecovery: Boolean,
+    helperBusy: Boolean,
     folderName: String?,
     onDismiss: () -> Unit,
     onUninstall: () -> Unit,
+    onRollback: () -> Unit,
+    onInstallHelper: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -481,7 +512,7 @@ private fun RollbackDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     stringResource(
-                        R.string.updates_rollback_steps,
+                        if (hasRecovery) R.string.updates_rollback_with_helper else R.string.updates_rollback_steps,
                         file.name.removePrefix("pocketssh-apk-"),
                         folderName ?: "—",
                     ),
@@ -494,15 +525,33 @@ private fun RollbackDialog(
                         fontSize = 13.sp,
                     )
                 }
+                if (!hasRecovery) {
+                    Text(
+                        stringResource(R.string.updates_helper_pitch),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         },
         confirmButton = {
-            // Only the uninstall is actionable from here. The install cannot be: once PocketSSH
-            // is gone there is no button left to press, and while it is still installed Android
-            // rejects the lower version code. So the dialog names the file and leaves that step
-            // to a file manager rather than offering a control that cannot work.
-            TextButton(onClick = onUninstall, enabled = hasBackup) {
-                Text(stringResource(R.string.updates_step_uninstall))
+            // With the helper installed this is one button, because a separate package outlives
+            // the uninstall and can do the install afterwards. Without it, the install step has
+            // no possible control — once PocketSSH is gone there is nothing left to press — so
+            // only the uninstall is offered and the dialog names the file to open by hand.
+            if (hasRecovery) {
+                TextButton(onClick = onRollback, enabled = hasBackup) {
+                    Text(stringResource(R.string.updates_rollback_now))
+                }
+            } else {
+                Column {
+                    TextButton(onClick = onInstallHelper, enabled = !helperBusy) {
+                        Text(stringResource(R.string.updates_install_helper))
+                    }
+                    TextButton(onClick = onUninstall, enabled = hasBackup) {
+                        Text(stringResource(R.string.updates_step_uninstall))
+                    }
+                }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
