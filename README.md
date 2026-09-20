@@ -61,6 +61,34 @@ Each key can also carry its own label and icon, including the confirm key. This 
 only: a key still types the digit it was always going to type, so restyling the pad cannot change
 what your PIN is or lock you out.
 
+## Updates and rollback
+
+PocketSSH checks its own GitHub releases, shows what changed, downloads the APK and hands it to
+the system installer. Android still asks for confirmation and for permission to install from this
+source — silent installation belongs to system installers alone.
+
+Rolling back is messier, and worth being plain about. Android will not install an older version
+over a newer one, and no ordinary app can override that. So a rollback means uninstalling first,
+which destroys the Keystore key that profiles are sealed with. Downloaded APKs are therefore kept
+in a folder you choose, alongside automatic backups, and the app walks you through the two steps
+rather than pretending it can do them for you.
+
+The automatic backups are what make that survivable. They are written before every update and
+after every change, into that same folder — outside app storage, because the whole point is
+surviving an uninstall. They are encrypted like any other backup, except the passphrase is
+derived from `ANDROID_ID` rather than chosen. On Android 8.0 and up that value is scoped to the
+app signing key and "does not change on package uninstall or reinstall, as long as the signing
+key is the same", so a reinstalled PocketSSH can open its own backup with no passphrase to
+remember.
+
+The trade-offs, since they are not obvious:
+
+- An automatic backup is readable only on the device that wrote it, by a build signed with the
+  same key. A factory reset or a new signing keystore makes older ones unreadable.
+- Moving to a different phone needs the manual passphrase backup instead.
+- Uninstalling also drops the permission on the backup folder, so after a reinstall you point at
+  the folder once and everything is restored in that same step.
+
 ## Languages
 
 English, Russian, Ukrainian, Spanish and German, switchable in Settings independently of the
