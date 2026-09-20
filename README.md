@@ -67,11 +67,19 @@ PocketSSH checks its own GitHub releases, shows what changed, downloads the APK 
 the system installer. Android still asks for confirmation and for permission to install from this
 source — silent installation belongs to system installers alone.
 
-Rolling back is messier, and worth being plain about. Android will not install an older version
-over a newer one, and no ordinary app can override that. So a rollback means uninstalling first,
-which destroys the Keystore key that profiles are sealed with. Downloaded APKs are therefore kept
-in a folder you choose, alongside automatic backups, and the app walks you through the two steps
-rather than pretending it can do them for you.
+Rolling back needs a second package, and the reason is structural. Android will not install an
+older version over a newer one, so a downgrade has to uninstall first — and an app cannot install
+anything after uninstalling itself. `PocketSSH Recovery` exists for that gap: a headless service
+with no activity and no launcher entry, which PocketSSH calls on its way out. It copies the saved
+APK, asks for the uninstall, and installs the older build once that finishes.
+
+Android still confirms the uninstall and the install. Only a system installer can skip those, and
+this is not one. What the helper removes is having to find the APK in a file manager afterwards.
+
+The service is exported behind a `signature` permission, so only a build signed with the same key
+can start it. Without the helper installed, PocketSSH falls back to naming the file and the
+folder and leaving the second step to you — because once it is uninstalled there is no button of
+its own left to press.
 
 The automatic backups are what make that survivable. They are written before every update and
 after every change, into that same folder — outside app storage, because the whole point is
@@ -96,10 +104,12 @@ system language.
 
 ## Building
 
-Needs JDK 17. Everything else comes down with Gradle.
+Needs JDK 17. Everything else comes down with Gradle. Two modules: `:app` and `:recovery`, the
+downgrade helper.
 
 ```
 ./gradlew assembleDebug        # APK at app/build/outputs/apk/debug/
+./gradlew :recovery:assembleRelease   # the helper, at recovery/build/outputs/apk/release/
 ./gradlew installDebug         # build and push to a connected device
 ./gradlew testDebugUnitTest    # JVM tests
 ./gradlew connectedDebugAndroidTest   # instrumented tests, needs a device or emulator

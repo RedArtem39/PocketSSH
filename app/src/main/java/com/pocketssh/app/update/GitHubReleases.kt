@@ -13,6 +13,9 @@ data class ReleaseInfo(
     val apkUrl: String?,
     val apkName: String?,
     val apkSize: Long,
+    /** The companion downgrade helper, published alongside the app since v0.5.0. */
+    val recoveryUrl: String?,
+    val recoverySize: Long,
     val publishedAt: String,
     val prerelease: Boolean,
 )
@@ -65,9 +68,13 @@ object GitHubReleases {
     private fun parseRelease(json: JSONObject): ReleaseInfo {
         val tag = json.optString("tag_name")
         val assets = json.optJSONArray("assets") ?: JSONArray()
-        val apk = (0 until assets.length())
+        val apks = (0 until assets.length())
             .map { assets.getJSONObject(it) }
-            .firstOrNull { it.optString("name").endsWith(".apk", ignoreCase = true) }
+            .filter { it.optString("name").endsWith(".apk", ignoreCase = true) }
+        // Both APKs are attached to the same release, so they are told apart by name rather than
+        // by position — asset order is not something the API promises.
+        val recovery = apks.firstOrNull { it.optString("name").contains("recovery", ignoreCase = true) }
+        val apk = apks.firstOrNull { it !== recovery }
         return ReleaseInfo(
             tag = tag,
             title = json.optString("name").ifBlank { tag },
@@ -76,6 +83,8 @@ object GitHubReleases {
             apkUrl = apk?.optString("browser_download_url"),
             apkName = apk?.optString("name"),
             apkSize = apk?.optLong("size") ?: 0L,
+            recoveryUrl = recovery?.optString("browser_download_url"),
+            recoverySize = recovery?.optLong("size") ?: 0L,
             publishedAt = json.optString("published_at"),
             prerelease = json.optBoolean("prerelease", false),
         )

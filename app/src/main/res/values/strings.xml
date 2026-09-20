@@ -214,4 +214,9 @@ Afterwards, point the reinstalled app at the same folder and your servers come b
     <string name="updates_show_less">Show less</string>
     <string name="updates_downloaded">Downloaded %1$s</string>
     <string name="updates_install_failed_detail">Install failed: %1$s</string>
+    <string name="updates_rollback_with_helper">PocketSSH Recovery will do this: it uninstalls the current version and installs %1$s straight afterwards. Android confirms each of those two steps.\n\nYour servers stay in %2$s and come back when you point the reinstalled app at that folder.</string>
+    <string name="updates_helper_pitch">Without the helper the second step cannot be a button — once PocketSSH is uninstalled there is nothing left to press, so you would have to open the APK from your folder by hand.</string>
+    <string name="updates_rollback_now">Roll back now</string>
+    <string name="updates_install_helper">Install the helper</string>
+    <string name="updates_helper_needs_check">Check for updates first so the helper can be downloaded.</string>
 </resources>

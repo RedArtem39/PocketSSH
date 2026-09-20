@@ -214,4 +214,9 @@ Después, señala la misma carpeta desde la app reinstalada y tus servidores vol
     <string name="updates_show_less">Ver menos</string>
     <string name="updates_downloaded">Descargado %1$s</string>
     <string name="updates_install_failed_detail">La instalación falló: %1$s</string>
+    <string name="updates_rollback_with_helper">PocketSSH Recovery lo hará: desinstala la versión actual e instala %1$s justo después. Android confirma cada uno de los dos pasos.\n\nTus servidores siguen en %2$s y vuelven cuando señales esa carpeta desde la app reinstalada.</string>
+    <string name="updates_helper_pitch">Sin el asistente el segundo paso no puede ser un botón: una vez desinstalado PocketSSH no queda nada que pulsar, y tendrías que abrir el APK de tu carpeta a mano.</string>
+    <string name="updates_rollback_now">Revertir ahora</string>
+    <string name="updates_install_helper">Instalar el asistente</string>
+    <string name="updates_helper_needs_check">Busca actualizaciones primero para poder descargar el asistente.</string>
 </resources>

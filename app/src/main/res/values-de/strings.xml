@@ -214,4 +214,9 @@ Zeig die neu installierte App anschließend auf denselben Ordner, dann sind dein
     <string name="updates_show_less">Weniger anzeigen</string>
     <string name="updates_downloaded">%1$s geladen</string>
     <string name="updates_install_failed_detail">Installation fehlgeschlagen: %1$s</string>
+    <string name="updates_rollback_with_helper">Das übernimmt PocketSSH Recovery: es deinstalliert die aktuelle Version und installiert direkt danach %1$s. Android bestätigt jeden der beiden Schritte.\n\nDeine Server bleiben in %2$s und kommen zurück, sobald du die neu installierte App auf diesen Ordner zeigst.</string>
+    <string name="updates_helper_pitch">Ohne den Helfer kann der zweite Schritt keine Schaltfläche sein — nach der Deinstallation gibt es nichts mehr zum Antippen, und du müsstest das APK von Hand aus deinem Ordner öffnen.</string>
+    <string name="updates_rollback_now">Jetzt zurückrollen</string>
+    <string name="updates_install_helper">Helfer installieren</string>
+    <string name="updates_helper_needs_check">Suche zuerst nach Updates, damit der Helfer geladen werden kann.</string>
 </resources>

@@ -214,4 +214,9 @@
     <string name="updates_show_less">Свернуть</string>
     <string name="updates_downloaded">Скачано %1$s</string>
     <string name="updates_install_failed_detail">Установка не удалась: %1$s</string>
+    <string name="updates_rollback_with_helper">Это сделает PocketSSH Recovery: удалит текущую версию и сразу поставит %1$s. Android подтвердит каждый из двух шагов.\n\nСерверы останутся в %2$s и вернутся, когда укажете переустановленному приложению эту папку.</string>
+    <string name="updates_helper_pitch">Без помощника второй шаг не может быть кнопкой — после удаления PocketSSH нажимать уже негде, и APK пришлось бы открывать из папки вручную.</string>
+    <string name="updates_rollback_now">Откатить сейчас</string>
+    <string name="updates_install_helper">Установить помощник</string>
+    <string name="updates_helper_needs_check">Сначала проверьте обновления, чтобы помощник можно было скачать.</string>
 </resources>
