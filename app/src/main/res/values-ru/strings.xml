@@ -175,7 +175,7 @@
     <string name="updates_downloading">Скачиваю %1$s</string>
     <string name="updates_install">Установить</string>
     <string name="updates_install_failed">Не удалось запустить установщик</string>
-    <string name="updates_ready_note">Серверы сохранены в резервную копию перед загрузкой.</string>
+    <string name="updates_ready_note">Открываю установщик Android. Если ничего не появилось — нажмите «Установить».</string>
     <string name="updates_permission_needed">Android требует разрешения, прежде чем PocketSSH сможет установить APK.</string>
     <string name="updates_allow_installs">Разрешить установку</string>
     <string name="updates_prereleases">Включая предварительные версии</string>
@@ -208,4 +208,6 @@
     <string name="restore_nothing_found">В этой папке нет читаемой копии</string>
     <string name="updates_show_all">Показать всё</string>
     <string name="updates_show_less">Свернуть</string>
+    <string name="updates_downloaded">Скачано %1$s</string>
+    <string name="updates_install_failed_detail">Установка не удалась: %1$s</string>
 </resources>

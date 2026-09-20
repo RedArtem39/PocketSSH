@@ -175,7 +175,7 @@
     <string name="updates_downloading">Завантажую %1$s</string>
     <string name="updates_install">Встановити</string>
     <string name="updates_install_failed">Не вдалося запустити встановлювач</string>
-    <string name="updates_ready_note">Сервери збережено в резервну копію перед завантаженням.</string>
+    <string name="updates_ready_note">Відкриваю встановлювач Android. Якщо нічого не сталося — натисніть «Встановити».</string>
     <string name="updates_permission_needed">Android потребує дозволу, перш ніж PocketSSH зможе встановити APK.</string>
     <string name="updates_allow_installs">Дозволити встановлення</string>
     <string name="updates_prereleases">Разом із попередніми версіями</string>
@@ -208,4 +208,6 @@
     <string name="restore_nothing_found">У цій теці немає читабельної копії</string>
     <string name="updates_show_all">Показати все</string>
     <string name="updates_show_less">Згорнути</string>
+    <string name="updates_downloaded">Завантажено %1$s</string>
+    <string name="updates_install_failed_detail">Встановлення не вдалося: %1$s</string>
 </resources>

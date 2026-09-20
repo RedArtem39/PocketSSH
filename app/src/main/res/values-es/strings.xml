@@ -175,7 +175,7 @@
     <string name="updates_downloading">Descargando %1$s</string>
     <string name="updates_install">Instalar</string>
     <string name="updates_install_failed">No se pudo abrir el instalador</string>
-    <string name="updates_ready_note">Tus servidores se respaldaron antes de esta descarga.</string>
+    <string name="updates_ready_note">Abriendo el instalador de Android. Si no apareció nada, pulsa Instalar.</string>
     <string name="updates_permission_needed">Android necesita tu permiso antes de que PocketSSH pueda instalar un APK.</string>
     <string name="updates_allow_installs">Permitir instalaciones</string>
     <string name="updates_prereleases">Incluir versiones preliminares</string>
@@ -208,4 +208,6 @@
     <string name="restore_nothing_found">No hay copias legibles en esa carpeta</string>
     <string name="updates_show_all">Ver todo</string>
     <string name="updates_show_less">Ver menos</string>
+    <string name="updates_downloaded">Descargado %1$s</string>
+    <string name="updates_install_failed_detail">La instalación falló: %1$s</string>
 </resources>
