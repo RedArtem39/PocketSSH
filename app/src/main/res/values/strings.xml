@@ -221,4 +221,9 @@ Afterwards, point the reinstalled app at the same folder and your servers come b
     <string name="updates_helper_needs_check">Check for updates first so the helper can be downloaded.</string>
     <string name="updates_rollback_direct">Installing this version over the current one keeps every server and setting. Android will ask you to confirm once.</string>
     <string name="updates_rollback_via_helper">Roll back with the helper (uninstalls first)</string>
+    <string name="updates_versions_desc">Every published version. Ones saved in your folder install without a network; the rest are downloaded when you pick them. Version codes are frozen, so moving in either direction keeps all your servers and settings.</string>
+    <string name="updates_version_installed">Installed</string>
+    <string name="updates_version_offline">Saved in your folder · %1$s</string>
+    <string name="updates_version_downloads">Downloads %1$s</string>
+    <string name="updates_version_needs_uninstall">needs uninstall first</string>
 </resources>

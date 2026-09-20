@@ -163,6 +163,47 @@ class UpdateManager(
     /** APKs kept in the shared folder, newest first. */
     fun archivedApks(): List<StoredFile> = folder.list(APK_PREFIX)
 
+    /** File name an archived APK gets for [version], so callers can match one to a release. */
+    fun archiveNameFor(version: String): String = "${APK_PREFIX}PocketSSH-$version.apk"
+
+    /**
+     * Copies the running build into the shared folder so it can be rolled back to later.
+     *
+     * Archiving used to happen only on download, which meant a version installed any other way —
+     * sideloaded, or built and pushed over adb — never appeared among the rollback choices even
+     * though it was the one actually running. An app can read its own APK: sourceDir is
+     * world-readable, which is what makes this possible at all.
+     */
+    suspend fun archiveCurrentApk(): Boolean {
+        if (!folder.isConfigured) return false
+        val name = archiveNameFor(currentVersion.raw)
+        if (folder.list(APK_PREFIX).any { it.name == name }) return true
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val source = File(context.applicationInfo.sourceDir)
+                folder.write(name, "application/vnd.android.package-archive", source.readBytes())
+            }.getOrDefault(false)
+        }
+    }
+
+    /**
+     * Downloads a specific release and offers it for install, whether it is newer or older than
+     * what is running. Version codes are frozen, so Android treats either direction as an
+     * ordinary install over the top.
+     */
+    suspend fun installVersion(release: ReleaseInfo): InstallResult {
+        val url = release.apkUrl ?: return InstallResult.Failed("This release has no APK attached")
+        if (!canRequestInstalls()) return InstallResult.NeedsPermission
+        val file = withContext(Dispatchers.IO) {
+            runCatching {
+                File(cacheDir(), release.apkName ?: "PocketSSH-${release.version}.apk")
+                    .also { fetch(url, it) { _, _ -> } }
+            }
+        }.getOrElse { return InstallResult.Failed(it.message ?: "Download failed") }
+        archive(file)
+        return install(file)
+    }
+
     fun canRequestInstalls(): Boolean = context.packageManager.canRequestPackageInstalls()
 
     fun isRecoveryInstalled(): Boolean =
@@ -220,6 +261,14 @@ class UpdateManager(
         }
     }
 
+    /** True when [release] already has a copy in the folder and needs no download. */
+    fun archivedCopyOf(release: ReleaseInfo): StoredFile? {
+        val expected = release.apkName?.let { "$APK_PREFIX$it" }
+        return folder.list(APK_PREFIX).firstOrNull {
+            it.name == expected || it.name == archiveNameFor(release.version.raw)
+        }
+    }
+
     private fun cacheDir(): File = File(context.cacheDir, "updates").apply { mkdirs() }
 
     private fun fetch(url: String, target: File, onProgress: (Long, Long) -> Unit) {
@@ -268,7 +317,7 @@ class UpdateManager(
         const val RECOVERY_PACKAGE = "com.pocketssh.recovery"
         const val SESSION_ENTRY = "package"
         const val ACTION_INSTALL_STATUS = "com.pocketssh.app.INSTALL_STATUS"
-        const val KEEP_APKS = 3
+        const val KEEP_APKS = 8
         const val MAX_REDIRECTS = 5
     }
 }

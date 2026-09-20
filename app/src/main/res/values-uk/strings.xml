@@ -221,4 +221,9 @@
     <string name="updates_helper_needs_check">Спершу перевірте оновлення, щоб помічника можна було завантажити.</string>
     <string name="updates_rollback_direct">Встановлення цієї версії поверх поточної збереже всі сервери та налаштування. Android один раз попросить підтвердити.</string>
     <string name="updates_rollback_via_helper">Відкотити через помічник (з видаленням)</string>
+    <string name="updates_versions_desc">Усі випущені версії. Збережені в теці встановлюються без мережі, решта завантажуються під час вибору. Код версії зафіксовано, тому перехід у будь-який бік зберігає всі сервери та налаштування.</string>
+    <string name="updates_version_installed">Встановлена</string>
+    <string name="updates_version_offline">Збережена в теці · %1$s</string>
+    <string name="updates_version_downloads">Завантажить %1$s</string>
+    <string name="updates_version_needs_uninstall">потрібне видалення</string>
 </resources>
