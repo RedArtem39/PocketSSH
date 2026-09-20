@@ -117,8 +117,9 @@ version code was frozen.
 
 Everything below 1.0 predates this scheme and does not follow it.
 
-1.0 waits on two things: an SSH session proven against a real server from a release build, and a
-backup format settled enough to call stable.
+1.0 waits on the backup format settling enough to call stable. The other half of that bar is
+met: a release build, R8 and resource shrinking included, has held a working SSH session against
+a real host.
 
 Pre-releases are flagged as such on GitHub and hidden behind a toggle in the app. Note that
 `Version.parse` compares the numeric parts only, so a `-rc1` suffix currently compares equal to
@@ -176,8 +177,12 @@ crypto provider. AndroidX Compose, Lifecycle, Fragment and Biometric. Nothing el
 
 ## Status
 
-A personal project, not a product. It works, and it is used, but there is no release channel and
-no support. Expect rough edges.
+A personal project, not a product. It works, and it is used, but there is no support and the only
+release channel is this repository's releases page. Expect rough edges.
+
+Proven on a real host from a release build: connecting, authenticating and an interactive shell.
+The minified build was the thing most likely to break that — R8 renaming its way through sshj and
+BouncyCastle — and it does not.
 
 ## Licence
 
