@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import java.io.InputStream
+import java.io.OutputStream
 
 /**
  * A user-chosen folder outside the app's own storage, used for automatic backups and for keeping
@@ -17,6 +19,10 @@ import androidx.documentfile.provider.DocumentFile
  * The grant itself does not survive an uninstall: Android drops persisted URI permissions along
  * with the package. After a reinstall the user has to point at the folder once more, which is
  * one tap, and the contents are still there.
+ *
+ * Every method here is blocking and talks to a ContentProvider — listing a directory is a full
+ * round trip per entry. Call them from a background dispatcher, and reuse a returned list rather
+ * than asking again per item.
  */
 class StorageFolder(private val context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -49,17 +55,28 @@ class StorageFolder(private val context: Context) {
         prefs.edit().remove(KEY_TREE).apply()
     }
 
-    fun write(name: String, mimeType: String, bytes: ByteArray): Boolean {
+    fun write(name: String, mimeType: String, bytes: ByteArray): Boolean =
+        write(name, mimeType) { it.write(bytes) }
+
+    /**
+     * Streaming variant. APKs here run to several megabytes, and materialising one as a ByteArray
+     * just to hand it to a stream doubles the peak allocation for no reason.
+     */
+    fun write(name: String, mimeType: String, body: (OutputStream) -> Unit): Boolean {
         val root = root() ?: return false
         return runCatching {
             // Replace rather than let the provider suffix the name with "(1)" — callers rely on
             // being able to find a file back by the exact name they wrote.
             root.findFile(name)?.delete()
             val file = root.createFile(mimeType, name) ?: return false
-            context.contentResolver.openOutputStream(file.uri)?.use { it.write(bytes) } ?: return false
+            context.contentResolver.openOutputStream(file.uri)?.use(body) ?: return false
             true
         }.getOrDefault(false)
     }
+
+    /** Caller owns the stream. Null when the document cannot be opened. */
+    fun openInput(uri: Uri): InputStream? =
+        runCatching { context.contentResolver.openInputStream(uri) }.getOrNull()
 
     fun read(name: String): ByteArray? {
         val file = root()?.findFile(name)?.takeIf { it.isFile } ?: return null

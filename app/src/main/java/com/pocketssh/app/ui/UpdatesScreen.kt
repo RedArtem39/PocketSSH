@@ -80,7 +80,16 @@ import com.pocketssh.app.update.Version
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/** What one read of the backup folder yields; held as a unit so the screen reads it once. */
+private data class FolderSnapshot(
+    val name: String? = null,
+    val backups: List<StoredFile> = emptyList(),
+    val archived: List<StoredFile> = emptyList(),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,9 +98,10 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     val state by viewModel.updates.state.collectAsState()
 
-    var folderName by remember { mutableStateOf(viewModel.storageFolder.displayName()) }
-    var backups by remember { mutableStateOf(viewModel.autoBackup.list()) }
-    var archived by remember { mutableStateOf(viewModel.updates.archivedApks()) }
+    // Reading the folder means a ContentProvider round trip per entry. Doing that during
+    // composition — three separate walks, once per value — is what froze the screen on entry, so
+    // it is loaded once, in the background, into a single snapshot.
+    var folder by remember { mutableStateOf(FolderSnapshot()) }
     var toast by remember { mutableStateOf<String?>(null) }
     var rollbackTarget by remember { mutableStateOf<StoredFile?>(null) }
     var includePrereleases by remember { mutableStateOf(false) }
@@ -134,17 +144,20 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
         }
     }
 
-    fun refreshFolderState() {
-        folderName = viewModel.storageFolder.displayName()
-        backups = viewModel.autoBackup.list()
-        archived = viewModel.updates.archivedApks()
+    fun reloadFolder() {
+        scope.launch {
+            folder = withContext(Dispatchers.IO) {
+                FolderSnapshot(
+                    name = viewModel.storageFolder.displayName(),
+                    backups = viewModel.autoBackup.list(),
+                    archived = viewModel.updates.archivedApks(),
+                )
+            }
+        }
     }
 
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) {
-            viewModel.rememberStorageFolder(uri)
-            refreshFolderState()
-        }
+        if (uri != null) viewModel.rememberStorageFolder(uri) { reloadFolder() }
     }
 
     toast?.let { current -> LaunchedEffect(current) { kotlinx.coroutines.delay(3000); toast = null } }
@@ -155,9 +168,17 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     }
 
     // Keep a copy of whatever is running, so the version now installed is always one of the
-    // versions that can be returned to.
-    LaunchedEffect(folderName) {
-        if (folderName != null && viewModel.updates.archiveCurrentApk()) refreshFolderState()
+    // versions that can be returned to. archiveCurrentApk() does its own folder checks on IO and
+    // returns false when there was nothing to do, so this costs one background pass.
+    LaunchedEffect(Unit) {
+        folder = withContext(Dispatchers.IO) {
+            FolderSnapshot(
+                name = viewModel.storageFolder.displayName(),
+                backups = viewModel.autoBackup.list(),
+                archived = viewModel.updates.archivedApks(),
+            )
+        }
+        if (viewModel.updates.archiveCurrentApk()) reloadFolder()
     }
 
     // The download finishes in about a second on wifi, so waiting for a second tap made the whole
@@ -170,7 +191,7 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
         if (!canInstall || autoLaunched == ready.file.name) return@LaunchedEffect
         autoLaunched = ready.file.name
         report(viewModel.updates.install(ready.file))
-        refreshFolderState()
+        reloadFolder()
     }
 
     rollbackTarget?.let { target ->
@@ -178,10 +199,10 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             file = target,
             // Nothing to lose is as safe as having a backup: with no servers stored there is
             // nothing an uninstall could destroy, and blocking the rollback then is just noise.
-            hasBackup = backups.isNotEmpty() || profiles.isEmpty(),
+            hasBackup = folder.backups.isNotEmpty() || profiles.isEmpty(),
             hasRecovery = hasRecovery,
             helperBusy = helperBusy,
-            folderName = folderName,
+            folderName = folder.name,
             installError = installError,
             onDismiss = {
                 rollbackTarget = null
@@ -189,7 +210,9 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             },
             onDirectInstall = {
                 installError = null
-                report(viewModel.updates.installFromFolder(target))
+                // Streams the APK into the install session off the main thread; doing it inline
+                // was what made this button hang before the dialog appeared.
+                scope.launch { report(viewModel.updates.installFromFolder(target)) }
             },
             onUninstall = { context.startActivity(viewModel.updates.uninstallIntent()) },
             onRollback = {
@@ -251,8 +274,10 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
                     scope.launch { viewModel.updates.download(release) }
                 },
                 onInstall = { file ->
-                    report(viewModel.updates.install(file))
-                    refreshFolderState()
+                    scope.launch {
+                        report(viewModel.updates.install(file))
+                        reloadFolder()
+                    }
                 },
                 onAllowInstalls = { context.startActivity(viewModel.updates.installPermissionIntent()) },
                 canInstall = canInstall,
@@ -279,13 +304,13 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
             HorizontalDivider()
 
             FolderSection(
-                folderName = folderName,
-                backupCount = backups.size,
-                latest = backups.firstOrNull(),
+                folderName = folder.name,
+                backupCount = folder.backups.size,
+                latest = folder.backups.firstOrNull(),
                 onChoose = { folderPicker.launch(null) },
                 onForget = {
                     viewModel.forgetStorageFolder()
-                    refreshFolderState()
+                    reloadFolder()
                 },
                 onBackupNow = {
                     viewModel.scheduleAutoBackup()
@@ -297,10 +322,10 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
 
             VersionLog(
                 releases = releases,
-                archived = archived,
+                archived = folder.archived,
                 currentVersion = viewModel.updates.currentVersionName(),
                 busyVersion = busyVersion,
-                archivedNameFor = { viewModel.updates.archivedCopyOf(it) },
+                archivedNameFor = { viewModel.updates.archivedCopyOf(it, folder.archived) },
                 onPick = { release, saved ->
                     if (saved != null) {
                         rollbackTarget = saved
@@ -312,7 +337,7 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
                             viewModel.scheduleAutoBackup()
                             report(viewModel.updates.installVersion(release))
                             busyVersion = null
-                            refreshFolderState()
+                            reloadFolder()
                         }
                     }
                 },

@@ -86,14 +86,22 @@ class UpdateManager(
         val result = withContext(Dispatchers.IO) {
             runCatching {
                 val target = File(cacheDir(), release.apkName ?: "update-${release.version}.apk")
+                var lastEmit = 0L
                 fetch(url, target) { read, total ->
-                    _state.value = UpdateState.Downloading(release, read, total)
+                    // One emission per 64KB block is ~90 recompositions for a 5MB download, and
+                    // the bar cannot show that much detail anyway. Throttled to frame rate.
+                    val now = System.currentTimeMillis()
+                    if (read >= total || now - lastEmit >= PROGRESS_INTERVAL_MS) {
+                        lastEmit = now
+                        _state.value = UpdateState.Downloading(release, read, total)
+                    }
                 }
+                // Still on IO: the archive copy is another few megabytes through the provider.
+                archive(target)
                 target
             }
         }
         result.onSuccess { file ->
-            archive(file)
             _state.value = UpdateState.ReadyToInstall(release, file)
         }.onFailure {
             _state.value = UpdateState.Failed(it.message ?: "Download failed")
@@ -112,14 +120,16 @@ class UpdateManager(
      * The distinction between "permission not granted" and "it genuinely failed" is kept because
      * the first is something the user can act on and the second is not.
      */
-    fun install(file: File): InstallResult {
+    suspend fun install(file: File): InstallResult {
         if (!canRequestInstalls()) return InstallResult.NeedsPermission
         if (!file.isFile || file.length() == 0L) return InstallResult.Failed("The downloaded file is missing")
-        return commitSession(file.name) { session ->
-            file.inputStream().use { input ->
-                session.openWrite(SESSION_ENTRY, 0, file.length()).use { output ->
-                    input.copyTo(output)
-                    session.fsync(output)
+        return withContext(Dispatchers.IO) {
+            commitSession(file.name) { session ->
+                file.inputStream().use { input ->
+                    session.openWrite(SESSION_ENTRY, 0, file.length()).use { output ->
+                        input.copyTo(output)
+                        session.fsync(output)
+                    }
                 }
             }
         }
@@ -130,13 +140,20 @@ class UpdateManager(
      * still installed, and Android rejects a lower version code over a higher one — which is why
      * the rollback flow asks the user to uninstall first and open the file themselves.
      */
-    fun installFromFolder(stored: StoredFile): InstallResult {
+    suspend fun installFromFolder(stored: StoredFile): InstallResult {
         if (!canRequestInstalls()) return InstallResult.NeedsPermission
-        val bytes = folder.readUri(stored.uri) ?: return InstallResult.Failed("Could not read the saved APK")
-        return commitSession(stored.name) { session ->
-            session.openWrite(SESSION_ENTRY, 0, bytes.size.toLong()).use { output ->
-                output.write(bytes)
-                session.fsync(output)
+        return withContext(Dispatchers.IO) {
+            commitSession(stored.name) { session ->
+                // Streamed straight from the provider into the session. Reading the whole APK
+                // into a ByteArray first is what made pressing this button stall for seconds.
+                val input = folder.openInput(stored.uri)
+                    ?: throw IllegalStateException("Could not read the saved APK")
+                input.use {
+                    session.openWrite(SESSION_ENTRY, 0, stored.size.takeIf { size -> size > 0 } ?: -1).use { output ->
+                        it.copyTo(output)
+                        session.fsync(output)
+                    }
+                }
             }
         }
     }
@@ -174,16 +191,18 @@ class UpdateManager(
      * though it was the one actually running. An app can read its own APK: sourceDir is
      * world-readable, which is what makes this possible at all.
      */
-    suspend fun archiveCurrentApk(): Boolean {
-        if (!folder.isConfigured) return false
+    suspend fun archiveCurrentApk(): Boolean = withContext(Dispatchers.IO) {
+        // isConfigured and list() both hit the provider, so the whole check belongs here too —
+        // they were the visible part of the stall when opening the screen.
+        if (!folder.isConfigured) return@withContext false
         val name = archiveNameFor(currentVersion.raw)
-        if (folder.list(APK_PREFIX).any { it.name == name }) return true
-        return withContext(Dispatchers.IO) {
-            runCatching {
-                val source = File(context.applicationInfo.sourceDir)
-                folder.write(name, "application/vnd.android.package-archive", source.readBytes())
-            }.getOrDefault(false)
-        }
+        if (folder.list(APK_PREFIX).any { it.name == name }) return@withContext false
+        runCatching {
+            val source = File(context.applicationInfo.sourceDir)
+            folder.write(name, "application/vnd.android.package-archive") { output ->
+                source.inputStream().use { it.copyTo(output) }
+            }
+        }.getOrDefault(false)
     }
 
     /**
@@ -198,9 +217,9 @@ class UpdateManager(
             runCatching {
                 File(cacheDir(), release.apkName ?: "PocketSSH-${release.version}.apk")
                     .also { fetch(url, it) { _, _ -> } }
+                    .also { archive(it) }
             }
         }.getOrElse { return InstallResult.Failed(it.message ?: "Download failed") }
-        archive(file)
         return install(file)
     }
 
@@ -234,10 +253,11 @@ class UpdateManager(
         if (!canRequestInstalls()) return InstallResult.NeedsPermission
         val file = withContext(Dispatchers.IO) {
             runCatching {
-                File(cacheDir(), "PocketSSH-Recovery.apk").also { fetch(url, it) { _, _ -> } }
+                File(cacheDir(), "PocketSSH-Recovery.apk")
+                    .also { fetch(url, it) { _, _ -> } }
+                    .also { archive(it) }
             }
         }.getOrElse { return InstallResult.Failed(it.message ?: "Download failed") }
-        archive(file)
         return install(file)
     }
 
@@ -253,20 +273,26 @@ class UpdateManager(
         _state.value = UpdateState.Idle
     }
 
+    /** Blocking; every caller is already on [Dispatchers.IO]. */
     private fun archive(file: File) {
         if (!folder.isConfigured) return
         runCatching {
-            folder.write("$APK_PREFIX${file.name}", "application/vnd.android.package-archive", file.readBytes())
+            folder.write("$APK_PREFIX${file.name}", "application/vnd.android.package-archive") { output ->
+                file.inputStream().use { it.copyTo(output) }
+            }
             folder.prune(APK_PREFIX, KEEP_APKS)
         }
     }
 
-    /** True when [release] already has a copy in the folder and needs no download. */
-    fun archivedCopyOf(release: ReleaseInfo): StoredFile? {
+    /**
+     * Finds [release] among an already-loaded listing. Takes the list rather than fetching one,
+     * because this is called per release during composition — re-listing the folder each time
+     * meant a full provider walk per row, per frame.
+     */
+    fun archivedCopyOf(release: ReleaseInfo, archived: List<StoredFile>): StoredFile? {
         val expected = release.apkName?.let { "$APK_PREFIX$it" }
-        return folder.list(APK_PREFIX).firstOrNull {
-            it.name == expected || it.name == archiveNameFor(release.version.raw)
-        }
+        val byVersion = archiveNameFor(release.version.raw)
+        return archived.firstOrNull { it.name == expected || it.name == byVersion }
     }
 
     private fun cacheDir(): File = File(context.cacheDir, "updates").apply { mkdirs() }
@@ -319,5 +345,6 @@ class UpdateManager(
         const val ACTION_INSTALL_STATUS = "com.pocketssh.app.INSTALL_STATUS"
         const val KEEP_APKS = 8
         const val MAX_REDIRECTS = 5
+        const val PROGRESS_INTERVAL_MS = 16L
     }
 }
