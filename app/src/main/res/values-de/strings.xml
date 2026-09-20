@@ -175,7 +175,7 @@
     <string name="updates_downloading">%1$s wird geladen</string>
     <string name="updates_install">Installieren</string>
     <string name="updates_install_failed">Installationsprogramm ließ sich nicht öffnen</string>
-    <string name="updates_ready_note">Deine Server wurden vor diesem Download gesichert.</string>
+    <string name="updates_ready_note">Android-Installationsprogramm wird geöffnet. Falls nichts erscheint, tippe auf Installieren.</string>
     <string name="updates_permission_needed">Android braucht deine Erlaubnis, bevor PocketSSH ein APK installieren darf.</string>
     <string name="updates_allow_installs">Installation erlauben</string>
     <string name="updates_prereleases">Vorabversionen einschließen</string>
@@ -208,4 +208,6 @@
     <string name="restore_nothing_found">In diesem Ordner liegt keine lesbare Sicherung</string>
     <string name="updates_show_all">Alles anzeigen</string>
     <string name="updates_show_less">Weniger anzeigen</string>
+    <string name="updates_downloaded">%1$s geladen</string>
+    <string name="updates_install_failed_detail">Installation fehlgeschlagen: %1$s</string>
 </resources>

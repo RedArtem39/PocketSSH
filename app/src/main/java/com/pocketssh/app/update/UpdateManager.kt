@@ -15,6 +15,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 
+sealed interface InstallResult {
+    data object Started : InstallResult
+    data object NeedsPermission : InstallResult
+    data class Failed(val message: String) : InstallResult
+}
+
 sealed interface UpdateState {
     data object Idle : UpdateState
     data object Checking : UpdateState
@@ -93,23 +99,28 @@ class UpdateManager(
         }
     }
 
-    /** Hands the APK to the package installer. Returns false if no installer took the intent. */
-    fun install(file: File): Boolean {
+    /**
+     * Hands the APK to the package installer. The distinction between "you have not granted the
+     * permission" and "it genuinely failed" matters to the caller: the first is a thing the user
+     * can fix and needs to be told about, the second is not.
+     */
+    fun install(file: File): InstallResult {
+        if (!canRequestInstalls()) return InstallResult.NeedsPermission
         val uri = runCatching {
             FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        }.getOrNull() ?: return false
+        }.getOrElse { return InstallResult.Failed(it.message ?: "Could not share the file") }
         return launchInstaller(uri)
     }
 
     /** Same, for an APK that lives in the shared folder rather than the cache — used by rollback. */
-    fun installFromFolder(stored: StoredFile): Boolean {
-        val copy = File(cacheDir(), stored.name)
-        val bytes = folder.readUri(stored.uri) ?: return false
+    fun installFromFolder(stored: StoredFile): InstallResult {
+        if (!canRequestInstalls()) return InstallResult.NeedsPermission
+        val bytes = folder.readUri(stored.uri) ?: return InstallResult.Failed("Could not read the saved APK")
         return runCatching {
+            val copy = File(cacheDir(), stored.name)
             copy.writeBytes(bytes)
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", copy)
-            launchInstaller(uri)
-        }.getOrDefault(false)
+            launchInstaller(FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", copy))
+        }.getOrElse { InstallResult.Failed(it.message ?: "Could not open the saved APK") }
     }
 
     /** APKs kept in the shared folder, newest first. */
@@ -129,12 +140,15 @@ class UpdateManager(
         _state.value = UpdateState.Idle
     }
 
-    private fun launchInstaller(uri: Uri): Boolean {
+    private fun launchInstaller(uri: Uri): InstallResult {
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        return runCatching { context.startActivity(intent); true }.getOrDefault(false)
+        return runCatching {
+            context.startActivity(intent)
+            InstallResult.Started
+        }.getOrElse { InstallResult.Failed(it.message ?: "No installer available") }
     }
 
     private fun archive(file: File) {

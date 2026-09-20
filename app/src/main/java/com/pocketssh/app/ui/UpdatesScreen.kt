@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,6 +59,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import com.pocketssh.app.MainViewModel
 import com.pocketssh.app.R
 import com.pocketssh.app.data.StoredFile
+import com.pocketssh.app.update.InstallResult
 import com.pocketssh.app.update.ReleaseInfo
 import com.pocketssh.app.update.UpdateState
 import java.text.DateFormat
@@ -87,6 +92,27 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     var rollbackTarget by remember { mutableStateOf<StoredFile?>(null) }
     var includePrereleases by remember { mutableStateOf(false) }
 
+    // Re-read on every resume rather than once per composition: granting the permission happens
+    // in a system screen, and coming back from it used to leave the Install button greyed out
+    // with no hint that anything had changed.
+    var canInstall by remember { mutableStateOf(viewModel.updates.canRequestInstalls()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) canInstall = viewModel.updates.canRequestInstalls()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    fun report(result: InstallResult) {
+        toast = when (result) {
+            is InstallResult.Started -> null
+            is InstallResult.NeedsPermission -> context.getString(R.string.updates_permission_needed)
+            is InstallResult.Failed -> context.getString(R.string.updates_install_failed_detail, result.message)
+        }
+    }
+
     fun refreshFolderState() {
         folderName = viewModel.storageFolder.displayName()
         backups = viewModel.autoBackup.list()
@@ -107,17 +133,26 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
         if (state is UpdateState.Idle) viewModel.updates.check(includePrereleases)
     }
 
+    // The download finishes in about a second on wifi, so waiting for a second tap made the whole
+    // thing look like nothing had happened. Going straight to the system installer means the
+    // confirmation dialog is the feedback. Keyed on the file so a dismissed dialog is not
+    // immediately reopened — the button below is there for a deliberate retry.
+    var autoLaunched by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(state, canInstall) {
+        val ready = state as? UpdateState.ReadyToInstall ?: return@LaunchedEffect
+        if (!canInstall || autoLaunched == ready.file.name) return@LaunchedEffect
+        autoLaunched = ready.file.name
+        report(viewModel.updates.install(ready.file))
+        refreshFolderState()
+    }
+
     rollbackTarget?.let { target ->
         RollbackDialog(
             file = target,
             hasBackup = backups.isNotEmpty(),
             onDismiss = { rollbackTarget = null },
             onUninstall = { context.startActivity(viewModel.updates.uninstallIntent()) },
-            onInstall = {
-                if (!viewModel.updates.installFromFolder(target)) {
-                    toast = context.getString(R.string.updates_install_failed)
-                }
-            },
+            onInstall = { report(viewModel.updates.installFromFolder(target)) },
         )
     }
 
@@ -159,13 +194,11 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
                     scope.launch { viewModel.updates.download(release) }
                 },
                 onInstall = { file ->
-                    if (!viewModel.updates.install(file)) {
-                        toast = context.getString(R.string.updates_install_failed)
-                    }
+                    report(viewModel.updates.install(file))
                     refreshFolderState()
                 },
                 onAllowInstalls = { context.startActivity(viewModel.updates.installPermissionIntent()) },
-                canInstall = viewModel.updates.canRequestInstalls(),
+                canInstall = canInstall,
             )
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -264,7 +297,7 @@ private fun UpdateStatusCard(
                     if (state.total > 0) {
                         LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
                         Text(
-                            "${formatSize(state.downloaded)} / ${formatSize(state.total)}",
+                            "${(fraction * 100).toInt()}%  ·  ${formatSize(state.downloaded)} / ${formatSize(state.total)}",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -274,14 +307,23 @@ private fun UpdateStatusCard(
                 }
 
                 is UpdateState.ReadyToInstall -> {
-                    ReleaseHeadline(state.release)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            stringResource(R.string.updates_downloaded, state.release.version.raw),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                     if (!canInstall) PermissionNotice(onAllowInstalls)
                     Text(
                         stringResource(R.string.updates_ready_note),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(onClick = { onInstall(state.file) }, enabled = canInstall) {
+                    // Deliberately always enabled: a greyed-out button explains nothing, whereas
+                    // pressing this one says exactly what is missing.
+                    Button(onClick = { onInstall(state.file) }) {
                         Text(stringResource(R.string.updates_install))
                     }
                 }
