@@ -77,9 +77,18 @@ Needs JDK 17. Everything else comes down with Gradle.
 ./gradlew connectedDebugAndroidTest   # instrumented tests, needs a device or emulator
 ```
 
-Note that the `release` build type is signed with the debug keystore. That is deliberate, so a
-minified R8 build can be installed for local testing, but it means release output is not fit to
-publish anywhere. Swap in a real keystore first.
+Release builds are signed with a keystore referenced from `local.properties`, which is gitignored
+along with the keystore itself:
+
+```
+releaseStoreFile=pocketssh-release.jks
+releaseStorePassword=...
+releaseKeyAlias=pocketssh
+releaseKeyPassword=...
+```
+
+Without those four lines the project still builds — the release type falls back to the debug key
+and warns you about it. Such a build is fine for local testing and must not be published.
 
 CI runs unit tests, lint and a debug assemble on every push and pull request, plus instrumented
 tests on an API 30 emulator.

@@ -1,3 +1,13 @@
+import java.util.Properties
+
+// Release signing credentials live in local.properties, which is gitignored — the keystore and
+// its passwords must never reach the repository. A checkout without them still builds; the
+// release type just falls back to the debug key and says so.
+val signingProps = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -12,8 +22,17 @@ android {
         applicationId = "com.pocketssh.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
+    }
+
+    val releaseSigning = signingProps.getProperty("releaseStoreFile")?.let { path ->
+        signingConfigs.create("release") {
+            storeFile = rootProject.file(path)
+            storePassword = signingProps.getProperty("releaseStorePassword")
+            keyAlias = signingProps.getProperty("releaseKeyAlias")
+            keyPassword = signingProps.getProperty("releaseKeyPassword")
+        }
     }
 
     buildTypes {
@@ -21,10 +40,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signed with the debug keystore so a release build can actually be installed for
-            // local device testing (R8 output, no debug-mode Compose overhead). Swap for a real
-            // release keystore before ever shipping this anywhere.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = releaseSigning ?: signingConfigs.getByName("debug").also {
+                logger.warn("No release keystore configured in local.properties - signing release with the debug key. Do not publish this build.")
+            }
         }
     }
 
