@@ -123,4 +123,42 @@
     <string name="hostkey_title">Неизвестный ключ сервера</string>
     <string name="hostkey_verify_text">Проверьте этот отпечаток перед подключением к %1$s:%2$d.</string>
     <string name="action_trust_and_save">Доверять и сохранить</string>
+
+    <!-- Lock screen style -->
+    <string name="action_save">Сохранить</string>
+    <string name="lockstyle_title">Стиль экрана блокировки</string>
+    <string name="lockstyle_entry_desc">Фон, цвета, подписи клавиш и анимации</string>
+    <string name="lockstyle_reset">Сбросить</string>
+    <string name="lockstyle_accent">Акцентный цвет</string>
+    <string name="lockstyle_background">Фон</string>
+    <string name="lockstyle_bg_aurora">Аврора</string>
+    <string name="lockstyle_bg_waves">Волны</string>
+    <string name="lockstyle_bg_grid">Сетка</string>
+    <string name="lockstyle_bg_rain">Дождь</string>
+    <string name="lockstyle_bg_solid">Без фона</string>
+    <string name="lockstyle_key_shape">Форма клавиш</string>
+    <string name="lockstyle_shape_circle">Круг</string>
+    <string name="lockstyle_shape_squircle">Сквиркл</string>
+    <string name="lockstyle_shape_rounded">Скруглённый</string>
+    <string name="lockstyle_key_style">Стиль клавиш</string>
+    <string name="lockstyle_style_glass">Стекло</string>
+    <string name="lockstyle_style_solid">Заливка</string>
+    <string name="lockstyle_style_outline">Контур</string>
+    <string name="lockstyle_style_ghost">Без фона</string>
+    <string name="lockstyle_key_size">Размер клавиш</string>
+    <string name="lockstyle_keys">Клавиши</string>
+    <string name="lockstyle_keys_desc">Нажмите клавишу, чтобы изменить её вид. Подписи и иконки — только оформление: клавиша всё равно вводит свою цифру.</string>
+    <string name="lockstyle_key_n">Клавиша %1$d</string>
+    <string name="lockstyle_key_editor_desc">Оставьте подпись пустой, чтобы клавиша была пустой. Иконка показывается вместо подписи или над ней.</string>
+    <string name="lockstyle_key_label">Подпись</string>
+    <string name="lockstyle_confirm_key">Подтвердить</string>
+    <string name="lockstyle_confirm_color">Цвет</string>
+    <string name="lockstyle_text">Текст</string>
+    <string name="lockstyle_greeting">Приветствие</string>
+    <string name="lockstyle_behaviour">Поведение</string>
+    <string name="lockstyle_show_clock">Показывать часы</string>
+    <string name="lockstyle_show_hint">Показывать подсказку</string>
+    <string name="lockstyle_haptics">Виброотклик</string>
+    <string name="lockstyle_auto_submit">Разблокировать на последней цифре</string>
+    <string name="lockstyle_auto_submit_desc">Проверять PIN, как только введено нужное число цифр</string>
 </resources>

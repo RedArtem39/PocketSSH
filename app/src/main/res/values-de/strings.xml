@@ -123,4 +123,42 @@
     <string name="hostkey_title">Unbekannter Server-Schlüssel</string>
     <string name="hostkey_verify_text">Überprüfe diesen Fingerabdruck, bevor du dich mit %1$s:%2$d verbindest.</string>
     <string name="action_trust_and_save">Vertrauen und speichern</string>
+
+    <!-- Lock screen style -->
+    <string name="action_save">Speichern</string>
+    <string name="lockstyle_title">Stil des Sperrbildschirms</string>
+    <string name="lockstyle_entry_desc">Hintergrund, Farben, Tastenbeschriftungen und Animationen</string>
+    <string name="lockstyle_reset">Zurücksetzen</string>
+    <string name="lockstyle_accent">Akzentfarbe</string>
+    <string name="lockstyle_background">Hintergrund</string>
+    <string name="lockstyle_bg_aurora">Aurora</string>
+    <string name="lockstyle_bg_waves">Wellen</string>
+    <string name="lockstyle_bg_grid">Raster</string>
+    <string name="lockstyle_bg_rain">Regen</string>
+    <string name="lockstyle_bg_solid">Schlicht</string>
+    <string name="lockstyle_key_shape">Tastenform</string>
+    <string name="lockstyle_shape_circle">Kreis</string>
+    <string name="lockstyle_shape_squircle">Squircle</string>
+    <string name="lockstyle_shape_rounded">Abgerundet</string>
+    <string name="lockstyle_key_style">Tastenstil</string>
+    <string name="lockstyle_style_glass">Glas</string>
+    <string name="lockstyle_style_solid">Gefüllt</string>
+    <string name="lockstyle_style_outline">Kontur</string>
+    <string name="lockstyle_style_ghost">Ohne Fläche</string>
+    <string name="lockstyle_key_size">Tastengröße</string>
+    <string name="lockstyle_keys">Tasten</string>
+    <string name="lockstyle_keys_desc">Tippe auf eine Taste, um ihr Aussehen zu ändern. Beschriftungen und Symbole sind rein optisch — jede Taste tippt weiterhin ihre eigene Ziffer.</string>
+    <string name="lockstyle_key_n">Taste %1$d</string>
+    <string name="lockstyle_key_editor_desc">Lass die Beschriftung leer für eine leere Taste. Das Symbol erscheint statt der Beschriftung oder darüber.</string>
+    <string name="lockstyle_key_label">Beschriftung</string>
+    <string name="lockstyle_confirm_key">Bestätigen</string>
+    <string name="lockstyle_confirm_color">Farbe</string>
+    <string name="lockstyle_text">Text</string>
+    <string name="lockstyle_greeting">Begrüßung</string>
+    <string name="lockstyle_behaviour">Verhalten</string>
+    <string name="lockstyle_show_clock">Uhr anzeigen</string>
+    <string name="lockstyle_show_hint">Hinweis anzeigen</string>
+    <string name="lockstyle_haptics">Haptisches Feedback</string>
+    <string name="lockstyle_auto_submit">Bei letzter Ziffer entsperren</string>
+    <string name="lockstyle_auto_submit_desc">PIN prüfen, sobald genug Ziffern eingegeben wurden</string>
 </resources>
