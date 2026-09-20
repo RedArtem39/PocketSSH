@@ -221,4 +221,9 @@ Después, señala la misma carpeta desde la app reinstalada y tus servidores vol
     <string name="updates_helper_needs_check">Busca actualizaciones primero para poder descargar el asistente.</string>
     <string name="updates_rollback_direct">Instalar esta versión sobre la actual conserva todos los servidores y ajustes. Android pedirá confirmación una vez.</string>
     <string name="updates_rollback_via_helper">Revertir con el asistente (desinstala primero)</string>
+    <string name="updates_versions_desc">Todas las versiones publicadas. Las guardadas en tu carpeta se instalan sin red; el resto se descargan al elegirlas. El código de versión está fijo, así que moverse en cualquier dirección conserva servidores y ajustes.</string>
+    <string name="updates_version_installed">Instalada</string>
+    <string name="updates_version_offline">Guardada en tu carpeta · %1$s</string>
+    <string name="updates_version_downloads">Descarga %1$s</string>
+    <string name="updates_version_needs_uninstall">requiere desinstalar antes</string>
 </resources>

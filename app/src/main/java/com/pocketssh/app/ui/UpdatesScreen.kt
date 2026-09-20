@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -40,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -74,6 +76,7 @@ import com.pocketssh.app.update.InstallResult
 import com.pocketssh.app.update.InstallStatusReceiver
 import com.pocketssh.app.update.ReleaseInfo
 import com.pocketssh.app.update.UpdateState
+import com.pocketssh.app.update.Version
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -103,6 +106,8 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     // two rollback routes they have ended up in.
     val installFailure by InstallStatusReceiver.lastFailure.collectAsState()
     var installError by remember { mutableStateOf<String?>(null) }
+    var busyVersion by remember { mutableStateOf<String?>(null) }
+    val releases by viewModel.updates.releases.collectAsState()
     LaunchedEffect(installFailure) { installFailure?.let { installError = it } }
 
     // Re-read on every resume rather than once per composition: granting the permission happens
@@ -147,6 +152,12 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
     // Check once on arrival so the screen is never just an inert button.
     LaunchedEffect(Unit) {
         if (state is UpdateState.Idle) viewModel.updates.check(includePrereleases)
+    }
+
+    // Keep a copy of whatever is running, so the version now installed is always one of the
+    // versions that can be returned to.
+    LaunchedEffect(folderName) {
+        if (folderName != null && viewModel.updates.archiveCurrentApk()) refreshFolderState()
     }
 
     // The download finishes in about a second on wifi, so waiting for a second tap made the whole
@@ -284,9 +295,28 @@ fun UpdatesScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
 
             HorizontalDivider()
 
-            RollbackSection(
+            VersionLog(
+                releases = releases,
                 archived = archived,
-                onPick = { rollbackTarget = it },
+                currentVersion = viewModel.updates.currentVersionName(),
+                busyVersion = busyVersion,
+                archivedNameFor = { viewModel.updates.archivedCopyOf(it) },
+                onPick = { release, saved ->
+                    if (saved != null) {
+                        rollbackTarget = saved
+                    } else {
+                        // Not in the folder yet, so fetch it first; it lands in the folder on the
+                        // way through and is available offline from then on.
+                        busyVersion = release.version.raw
+                        scope.launch {
+                            viewModel.scheduleAutoBackup()
+                            report(viewModel.updates.installVersion(release))
+                            busyVersion = null
+                            refreshFolderState()
+                        }
+                    }
+                },
+                onPickLocal = { rollbackTarget = it },
             )
         }
     }
@@ -414,6 +444,12 @@ private fun ReleaseHeadline(release: ReleaseInfo) {
 
 private const val CollapsedNoteLines = 8
 
+/**
+ * First release whose version code is the frozen constant. Anything earlier still has a
+ * sequential code and cannot be installed over a later build without uninstalling first.
+ */
+private val FrozenCodeSince = Version.parse("0.6.0")
+
 @Composable
 private fun PermissionNotice(onAllow: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -472,32 +508,92 @@ private fun FolderSection(
     }
 }
 
+/**
+ * Every published version, in one list. Entries already sitting in the backup folder install
+ * without a network; the rest are fetched when picked.
+ *
+ * This used to list only what happened to be in the folder, which meant a version installed any
+ * way other than through this screen never appeared — including, often, the one running.
+ */
 @Composable
-private fun RollbackSection(archived: List<StoredFile>, onPick: (StoredFile) -> Unit) {
+private fun VersionLog(
+    releases: List<ReleaseInfo>,
+    archived: List<StoredFile>,
+    currentVersion: String,
+    busyVersion: String?,
+    archivedNameFor: (ReleaseInfo) -> StoredFile?,
+    onPick: (ReleaseInfo, StoredFile?) -> Unit,
+    onPickLocal: (StoredFile) -> Unit,
+) {
+    // Anything in the folder that no release accounts for — a sideloaded build, or a release
+    // since deleted — still belongs in the list; it is installable all the same.
+    val orphans = archived.filter { stored -> releases.none { archivedNameFor(it)?.name == stored.name } }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.updates_rollback), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         Text(
-            stringResource(R.string.updates_rollback_desc),
+            stringResource(R.string.updates_versions_desc),
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (archived.isEmpty()) {
+        if (releases.isEmpty() && orphans.isEmpty()) {
             Text(
                 stringResource(R.string.updates_no_archived),
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        } else {
-            archived.forEach { file ->
-                ListItem(
-                    leadingContent = { Icon(Icons.Default.History, null) },
-                    headlineContent = { Text(file.name.removePrefix("pocketssh-apk-")) },
-                    supportingContent = { Text("${formatSize(file.size)} · ${formatTime(file.modifiedAt)}", fontSize = 12.sp) },
-                    trailingContent = {
-                        TextButton(onClick = { onPick(file) }) { Text(stringResource(R.string.updates_use)) }
-                    },
-                )
-            }
+        }
+        releases.forEach { release ->
+            val saved = archivedNameFor(release)
+            val installed = release.version.raw == currentVersion
+            val busy = busyVersion == release.version.raw
+            ListItem(
+                leadingContent = {
+                    Icon(
+                        if (saved != null) Icons.Default.Save else Icons.Default.CloudDownload,
+                        null,
+                        tint = if (installed) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                    )
+                },
+                headlineContent = { Text(release.title) },
+                supportingContent = {
+                    val where = when {
+                        installed -> stringResource(R.string.updates_version_installed)
+                        saved != null -> stringResource(R.string.updates_version_offline, formatSize(saved.size))
+                        else -> stringResource(R.string.updates_version_downloads, formatSize(release.apkSize))
+                    }
+                    // Releases from before the version code was frozen still carry sequential
+                    // codes, so Android refuses to install them over this one. Saying so here
+                    // beats letting the attempt fail and explaining afterwards.
+                    val legacy = !installed && release.version < FrozenCodeSince
+                    Text(
+                        if (legacy) "$where · " + stringResource(R.string.updates_version_needs_uninstall) else where,
+                        fontSize = 12.sp,
+                        color = if (legacy) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
+                    )
+                },
+                trailingContent = {
+                    when {
+                        installed -> Unit
+                        busy -> CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else -> TextButton(onClick = { onPick(release, saved) }) {
+                            Text(stringResource(R.string.updates_use))
+                        }
+                    }
+                },
+            )
+        }
+        orphans.forEach { file ->
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Save, null) },
+                headlineContent = { Text(file.name.removePrefix("pocketssh-apk-")) },
+                supportingContent = {
+                    Text("${formatSize(file.size)} · ${formatTime(file.modifiedAt)}", fontSize = 12.sp)
+                },
+                trailingContent = {
+                    TextButton(onClick = { onPickLocal(file) }) { Text(stringResource(R.string.updates_use)) }
+                },
+            )
         }
     }
 }

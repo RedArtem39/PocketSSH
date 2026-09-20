@@ -221,4 +221,9 @@ Zeig die neu installierte App anschließend auf denselben Ordner, dann sind dein
     <string name="updates_helper_needs_check">Suche zuerst nach Updates, damit der Helfer geladen werden kann.</string>
     <string name="updates_rollback_direct">Diese Version über die aktuelle zu installieren behält jeden Server und jede Einstellung. Android fragt einmal nach.</string>
     <string name="updates_rollback_via_helper">Mit dem Helfer zurückrollen (deinstalliert zuerst)</string>
+    <string name="updates_versions_desc">Alle veröffentlichten Versionen. Die in deinem Ordner gespeicherten installieren ohne Netz, die übrigen werden beim Auswählen geladen. Der Versionscode ist eingefroren, ein Wechsel in beide Richtungen behält Server und Einstellungen.</string>
+    <string name="updates_version_installed">Installiert</string>
+    <string name="updates_version_offline">Im Ordner gespeichert · %1$s</string>
+    <string name="updates_version_downloads">Lädt %1$s</string>
+    <string name="updates_version_needs_uninstall">erfordert vorherige Deinstallation</string>
 </resources>
