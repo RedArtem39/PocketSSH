@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -211,6 +212,19 @@ fun SettingsScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
                     leadingContent = { Icon(Icons.Default.Palette, null) },
                     headlineContent = { Text(stringResource(R.string.lockstyle_title)) },
                     supportingContent = { Text(stringResource(R.string.lockstyle_entry_desc), fontSize = 12.sp) },
+                    trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
+                )
+            }
+
+            HorizontalDivider()
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.updates_title), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                ListItem(
+                    modifier = Modifier.clickable { navigate("updates") },
+                    leadingContent = { Icon(Icons.Default.SystemUpdate, null) },
+                    headlineContent = { Text(stringResource(R.string.updates_entry_title)) },
+                    supportingContent = { Text(stringResource(R.string.updates_entry_desc), fontSize = 12.sp) },
                     trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
                 )
             }

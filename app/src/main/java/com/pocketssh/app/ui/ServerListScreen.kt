@@ -52,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -107,11 +108,18 @@ fun ServerListScreen(viewModel: MainViewModel, navigate: (String) -> Unit) {
         Crossfade(targetState = profiles.isEmpty(), label = "server-list") { empty ->
             if (empty) {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        Modifier.padding(horizontal = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Icon(Icons.Default.Terminal, null, Modifier.size(54.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(16.dp))
                         Text(stringResource(R.string.servers_empty_title), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                         Text(stringResource(R.string.servers_empty_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(28.dp))
+                        // An empty list is the only place a reinstall can be caught: the app has
+                        // just lost every preference, so it cannot know it is not brand new.
+                        RestoreBanner(viewModel, LocalContext.current)
                     }
                 }
             } else {
