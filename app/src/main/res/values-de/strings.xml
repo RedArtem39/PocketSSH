@@ -219,4 +219,6 @@ Zeig die neu installierte App anschließend auf denselben Ordner, dann sind dein
     <string name="updates_rollback_now">Jetzt zurückrollen</string>
     <string name="updates_install_helper">Helfer installieren</string>
     <string name="updates_helper_needs_check">Suche zuerst nach Updates, damit der Helfer geladen werden kann.</string>
+    <string name="updates_rollback_direct">Diese Version über die aktuelle zu installieren behält jeden Server und jede Einstellung. Android fragt einmal nach.</string>
+    <string name="updates_rollback_via_helper">Mit dem Helfer zurückrollen (deinstalliert zuerst)</string>
 </resources>

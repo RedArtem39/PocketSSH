@@ -22,8 +22,18 @@ android {
         applicationId = "com.pocketssh.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "0.5.0"
+        // Deliberately frozen. Android refuses to install a lower version code over a higher
+        // one, but has nothing against an equal one — that is an ordinary reinstall over the
+        // top, keeping data. Holding the code still therefore makes downgrades work exactly
+        // like upgrades: no uninstall, nothing lost. Nothing reads it: the updater compares
+        // versionName against the GitHub tag. Verified on device by installing 0.4.9 over
+        // 0.5.0 with both at code 7 — firstInstallTime was preserved, so it was an update.
+        //
+        // Set well above the last sequential code (7) so this build installs over anything
+        // released before the freeze. Releases older than that cannot be rolled back to this
+        // way; the recovery helper still covers them.
+        versionCode = 1000
+        versionName = "0.6.0"
 
         buildConfigField("String", "UPDATE_REPO", "\"RedArtem39/PocketSSH\"")
     }
