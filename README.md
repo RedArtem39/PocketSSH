@@ -98,6 +98,32 @@ The trade-offs, since they are not obvious:
 - Uninstalling also drops the permission on the backup folder, so after a reinstall you point at
   the folder once and everything is restored in that same step.
 
+## Versioning
+
+Tags are `vMAJOR.MINOR.PATCH` and `versionName` matches. `versionCode` is a frozen constant and
+carries no meaning — see the rollback section for why.
+
+The numbering answers one question: can you go back? Not "how large was the change", which is a
+judgement nobody else can check.
+
+- **Patch** — fixes, performance, wording, translations. Nothing new.
+- **Minor** — new features, interface changes, new settings. Going back is always safe.
+- **Major** — only when going back stops being safe: an incompatible profile or backup format, a
+  new signing key, a raised `minSdk`, a removed feature.
+
+So a major bump is rare and means something specific: cross that line and returning costs you
+data. The version log marks such a boundary the same way it marks releases from before the
+version code was frozen.
+
+Everything below 1.0 predates this scheme and does not follow it.
+
+1.0 waits on two things: an SSH session proven against a real server from a release build, and a
+backup format settled enough to call stable.
+
+Pre-releases are flagged as such on GitHub and hidden behind a toggle in the app. Note that
+`Version.parse` compares the numeric parts only, so a `-rc1` suffix currently compares equal to
+the final release — fix that before the first one, not after.
+
 ## Languages
 
 English, Russian, Ukrainian, Spanish and German, switchable in Settings independently of the
