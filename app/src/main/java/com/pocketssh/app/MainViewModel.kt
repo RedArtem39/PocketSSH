@@ -86,19 +86,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * anything, so pointing at the folder is the only signal available, and making the user then
      * press "restore" as well would be a second step for no decision.
      */
-    fun rememberStorageFolder(uri: Uri, onRestored: (Int) -> Unit = {}) {
-        if (!storageFolder.remember(uri)) return
-        if (_profiles.value.isEmpty()) {
-            restoreFromAutoBackup(onRestored)
-        } else {
-            refreshRestorable()
-            scheduleAutoBackup()
+    fun rememberStorageFolder(uri: Uri, onDone: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            // Taking the grant and resolving the tree are both provider calls; they ran on the
+            // main thread straight out of the picker callback.
+            val ok = withContext(Dispatchers.IO) { storageFolder.remember(uri) }
+            if (!ok) {
+                onDone(0)
+                return@launch
+            }
+            if (_profiles.value.isEmpty()) {
+                restoreFromAutoBackup(onDone)
+            } else {
+                refreshRestorable()
+                scheduleAutoBackup()
+                onDone(0)
+            }
         }
     }
 
     fun forgetStorageFolder() {
-        storageFolder.forget()
         _restorable.value = false
+        viewModelScope.launch { withContext(Dispatchers.IO) { storageFolder.forget() } }
     }
 
     /**
@@ -121,9 +130,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun scheduleAutoBackup() {
         val snapshot = _profiles.value
-        if (snapshot.isEmpty() || !autoBackup.isAvailable()) return
+        if (snapshot.isEmpty()) return
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
+                // isAvailable() asks the provider whether the folder is still writable, so it
+                // belongs on this side of the switch too — this runs from every profile save.
+                if (!autoBackup.isAvailable()) return@withContext
                 runCatching { autoBackup.write(snapshot, updates.currentVersionName()) }
             }
         }

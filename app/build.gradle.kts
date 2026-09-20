@@ -33,7 +33,7 @@ android {
         // released before the freeze. Releases older than that cannot be rolled back to this
         // way; the recovery helper still covers them.
         versionCode = 1000
-        versionName = "0.6.2"
+        versionName = "0.6.3"
 
         buildConfigField("String", "UPDATE_REPO", "\"RedArtem39/PocketSSH\"")
     }
