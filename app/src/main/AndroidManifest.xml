@@ -21,6 +21,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Receives PackageInstaller session results, including the request to show Android's
+             own install confirmation. Not exported: only the system posts to it. -->
+        <receiver
+            android:name=".update.InstallStatusReceiver"
+            android:exported="false" />
+
         <!-- Grants the package installer read access to the downloaded APK, which lives in the
              app's own cache and is otherwise unreadable by another process. -->
         <provider

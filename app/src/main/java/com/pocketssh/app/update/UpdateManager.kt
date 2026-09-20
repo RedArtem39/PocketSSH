@@ -1,9 +1,10 @@
 package com.pocketssh.app.update
 
 import android.content.Context
+import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageInstaller
 import android.net.Uri
-import androidx.core.content.FileProvider
 import com.pocketssh.app.BuildConfig
 import com.pocketssh.app.data.StorageFolder
 import com.pocketssh.app.data.StoredFile
@@ -100,27 +101,63 @@ class UpdateManager(
     }
 
     /**
-     * Hands the APK to the package installer. The distinction between "you have not granted the
-     * permission" and "it genuinely failed" matters to the caller: the first is a thing the user
-     * can fix and needs to be told about, the second is not.
+     * Streams the APK into a [PackageInstaller] session and commits it, which lands the user in
+     * Android's own "update this app?" dialog by way of [InstallStatusReceiver].
+     *
+     * An ACTION_VIEW intent on the APK would be shorter, but it is a content type like any other
+     * and every app that claims it joins the chooser — on the device this was tested against
+     * that meant picking the package installer out of a list that included a terminal emulator
+     * and a chat app. A session goes straight to the real installer.
+     *
+     * The distinction between "permission not granted" and "it genuinely failed" is kept because
+     * the first is something the user can act on and the second is not.
      */
     fun install(file: File): InstallResult {
         if (!canRequestInstalls()) return InstallResult.NeedsPermission
-        val uri = runCatching {
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        }.getOrElse { return InstallResult.Failed(it.message ?: "Could not share the file") }
-        return launchInstaller(uri)
+        if (!file.isFile || file.length() == 0L) return InstallResult.Failed("The downloaded file is missing")
+        return commitSession(file.name) { session ->
+            file.inputStream().use { input ->
+                session.openWrite(SESSION_ENTRY, 0, file.length()).use { output ->
+                    input.copyTo(output)
+                    session.fsync(output)
+                }
+            }
+        }
     }
 
-    /** Same, for an APK that lives in the shared folder rather than the cache — used by rollback. */
+    /**
+     * Same, for an APK kept in the shared folder. Note this can only succeed while PocketSSH is
+     * still installed, and Android rejects a lower version code over a higher one — which is why
+     * the rollback flow asks the user to uninstall first and open the file themselves.
+     */
     fun installFromFolder(stored: StoredFile): InstallResult {
         if (!canRequestInstalls()) return InstallResult.NeedsPermission
         val bytes = folder.readUri(stored.uri) ?: return InstallResult.Failed("Could not read the saved APK")
+        return commitSession(stored.name) { session ->
+            session.openWrite(SESSION_ENTRY, 0, bytes.size.toLong()).use { output ->
+                output.write(bytes)
+                session.fsync(output)
+            }
+        }
+    }
+
+    private fun commitSession(label: String, write: (PackageInstaller.Session) -> Unit): InstallResult {
+        InstallStatusReceiver.lastFailure.value = null
+        val installer = context.packageManager.packageInstaller
+        val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         return runCatching {
-            val copy = File(cacheDir(), stored.name)
-            copy.writeBytes(bytes)
-            launchInstaller(FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", copy))
-        }.getOrElse { InstallResult.Failed(it.message ?: "Could not open the saved APK") }
+            val sessionId = installer.createSession(params)
+            installer.openSession(sessionId).use { session ->
+                write(session)
+                val intent = Intent(context, InstallStatusReceiver::class.java)
+                    .setAction(ACTION_INSTALL_STATUS)
+                    .putExtra("label", label)
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                val pending = PendingIntent.getBroadcast(context, sessionId, intent, flags)
+                session.commit(pending.intentSender)
+            }
+            InstallResult.Started
+        }.getOrElse { InstallResult.Failed(it.message ?: "Could not start the install") }
     }
 
     /** APKs kept in the shared folder, newest first. */
@@ -138,17 +175,6 @@ class UpdateManager(
 
     fun reset() {
         _state.value = UpdateState.Idle
-    }
-
-    private fun launchInstaller(uri: Uri): InstallResult {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        return runCatching {
-            context.startActivity(intent)
-            InstallResult.Started
-        }.getOrElse { InstallResult.Failed(it.message ?: "No installer available") }
     }
 
     private fun archive(file: File) {
@@ -204,6 +230,8 @@ class UpdateManager(
 
     private companion object {
         const val APK_PREFIX = "pocketssh-apk-"
+        const val SESSION_ENTRY = "package"
+        const val ACTION_INSTALL_STATUS = "com.pocketssh.app.INSTALL_STATUS"
         const val KEEP_APKS = 3
         const val MAX_REDIRECTS = 5
     }

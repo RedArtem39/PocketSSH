@@ -193,10 +193,14 @@
     <string name="updates_no_archived">Noch keine früheren Versionen gespeichert.</string>
     <string name="updates_use">Verwenden</string>
     <string name="updates_rollback_title">Zurück auf %1$s</string>
-    <string name="updates_rollback_steps">Zwei Schritte, beide von Android bestätigt:\n\n1. PocketSSH deinstallieren. Deine Server bleiben im Ordner.\n2. %1$s installieren und auf den Ordner zeigen, um sie zurückzuholen.</string>
+    <string name="updates_rollback_steps">Zwei Schritte.
+
+1. Deinstalliere PocketSSH über die Schaltfläche unten. Deine Server bleiben im Sicherungsordner.
+2. Öffne dann %1$s im Ordner %2$s mit einem Dateimanager und installiere es — PocketSSH ist dann weg und kann diesen Teil nicht übernehmen.
+
+Zeig die neu installierte App anschließend auf denselben Ordner, dann sind deine Server wieder da.</string>
     <string name="updates_rollback_no_backup">Im Ordner liegt keine Sicherung. Ein Zurückrollen würde deine Server endgültig verlieren.</string>
     <string name="updates_step_uninstall">1. Deinstallieren</string>
-    <string name="updates_step_install">2. Alte Version installieren</string>
     <string name="restore_found_title">Sicherung gefunden</string>
     <string name="restore_found_desc">Diese Installation hat keine Server, aber im Ordner liegt eine Sicherung.</string>
     <string name="restore_offer_title">Aus einer Sicherung wiederherstellen</string>
